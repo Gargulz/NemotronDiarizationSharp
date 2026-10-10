@@ -2,9 +2,15 @@ using NemotronDiarizationSharp.Native;
 
 namespace NemotronDiarizationSharp;
 
-/// <summary>Optional CPU streaming geometry passed to the native model constructor.</summary>
+/// <summary>Optional device and streaming geometry passed to the native model constructor.</summary>
 public sealed class DiarizationModelOptions
 {
+    /// <summary>
+    /// CUDA device index to use. Null selects CPU. A nonnegative value explicitly selects that
+    /// GPU and requires a CUDA-enabled native runtime; the SDK does not fall back to CPU.
+    /// </summary>
+    public int? GpuDeviceIndex { get; init; }
+
     /// <summary>
     /// Streaming geometry preset: streaming, offline, v3-streaming, or v3-offline.
     /// Null leaves preset selection to the native model default. The offline names select
@@ -29,6 +35,15 @@ public sealed class DiarizationModelOptions
 
     /// <summary>Update period in coarse 80 ms encoder frames; null or nonpositive keeps the preset value.</summary>
     public int? UpdatePeriodFrames { get; init; }
+
+    internal int GetNativeGpuDeviceIndex()
+    {
+        if (GpuDeviceIndex is < 0)
+            throw new ArgumentOutOfRangeException(nameof(GpuDeviceIndex), GpuDeviceIndex,
+                "GPU device indexes must be nonnegative; use null to select CPU.");
+
+        return GpuDeviceIndex ?? -1;
+    }
 
     internal void ApplyNativeOverrides(ref DiarModelConfig config)
     {

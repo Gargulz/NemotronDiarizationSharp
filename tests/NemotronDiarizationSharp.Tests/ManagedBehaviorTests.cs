@@ -373,6 +373,26 @@ public sealed class ManagedBehaviorTests
         Assert.Equal(4, overrides.UpdatePeriodFrames);
     }
 
+    [Theory]
+    [InlineData(null, -1)]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    public void ModelOptionsMapGpuSelectionWithoutCheckingHardware(int? requestedIndex, int nativeIndex)
+    {
+        var options = new DiarizationModelOptions { GpuDeviceIndex = requestedIndex };
+
+        Assert.Equal(nativeIndex, options.GetNativeGpuDeviceIndex());
+    }
+
+    [Fact]
+    public void ModelOptionsRejectNegativeGpuIndexesAndKeepCpuAsNull()
+    {
+        var options = new DiarizationModelOptions { GpuDeviceIndex = -1 };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.GetNativeGpuDeviceIndex());
+        Assert.Equal(-1, new DiarizationModelOptions().GetNativeGpuDeviceIndex());
+    }
+
     [Fact]
     public void SegmentationOptionsPreserveNativeDefaultSentinelsAndRejectNonFiniteValues()
     {

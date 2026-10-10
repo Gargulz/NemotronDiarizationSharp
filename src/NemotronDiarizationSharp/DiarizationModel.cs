@@ -53,6 +53,7 @@ public sealed class DiarizationModel : IDisposable
     private static DiarizationModel LoadCore(string modelPath, DiarizationModelOptions? options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
+        int gpuDeviceIndex = options?.GetNativeGpuDeviceIndex() ?? -1;
         string fullPath = Path.GetFullPath(modelPath);
         if (!File.Exists(fullPath))
             throw new FileNotFoundException("The diarization model file was not found.", fullPath);
@@ -69,7 +70,7 @@ public sealed class DiarizationModel : IDisposable
             {
                 Size = (nuint)Marshal.SizeOf<DiarModelConfig>(),
                 ModelPath = utf8Path,
-                Gpu = -1,
+                Gpu = gpuDeviceIndex,
                 Preset = utf8Preset,
                 LeftContextFrames = -1
             };
