@@ -1,0 +1,61 @@
+# .NET and IDE output
+**/bin/
+**/obj/
+**/TestResults/
+**/coverage/
+*.coverage
+*.coveragexml
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vscode/*.log
+
+# CMake and native build output
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+cmake-build-*/
+*.obj
+*.o
+*.pch
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.idb
+*.ipch
+
+# NuGet packages and generated artifacts
+*.nupkg
+*.snupkg
+artifacts/
+
+# Downloaded ML model weights (keep source code and audio fixtures)
+models/
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+# Local secrets and environment files
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+
+# Temporary and operating-system files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store
