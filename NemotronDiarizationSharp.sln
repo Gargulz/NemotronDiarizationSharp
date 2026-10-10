@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NemotronDiarizationSharp.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NemotronDiarizationSharp.LongRun", "tests\NemotronDiarizationSharp.LongRun\NemotronDiarizationSharp.LongRun.csproj", "{B5B2B1E8-523C-4D9C-8F63-FDCA2910D4D7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NemotronDiarizationSharp.RealSpeech", "tests\NemotronDiarizationSharp.RealSpeech\NemotronDiarizationSharp.RealSpeech.csproj", "{7E36B381-8014-423E-8DC8-DB4DA80D3A0D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,5 +40,9 @@ Global
 		{B5B2B1E8-523C-4D9C-8F63-FDCA2910D4D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B5B2B1E8-523C-4D9C-8F63-FDCA2910D4D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B5B2B1E8-523C-4D9C-8F63-FDCA2910D4D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E36B381-8014-423E-8DC8-DB4DA80D3A0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E36B381-8014-423E-8DC8-DB4DA80D3A0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E36B381-8014-423E-8DC8-DB4DA80D3A0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E36B381-8014-423E-8DC8-DB4DA80D3A0D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
