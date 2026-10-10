@@ -8,8 +8,15 @@ internal sealed class ModelHandle : SafeHandleZeroOrMinusOneIsInvalid
 
     protected override bool ReleaseHandle()
     {
-        NativeMethods.DiarDestroy(handle);
-        return true;
+        try
+        {
+            NativeMethods.DiarDestroy(handle);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
 
@@ -26,8 +33,22 @@ internal sealed class StreamHandle : SafeHandleZeroOrMinusOneIsInvalid
 
     protected override bool ReleaseHandle()
     {
-        NativeMethods.DiarStreamClose(handle);
-        Interlocked.Exchange(ref _modelOwner, null)?.DangerousRelease();
-        return true;
+        bool streamClosed = false;
+        try
+        {
+            NativeMethods.DiarStreamClose(handle);
+            streamClosed = true;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (streamClosed)
+                Interlocked.Exchange(ref _modelOwner, null)?.DangerousRelease();
+            // Если native stream не закрылся, удерживаем модель, чтобы не нарушить её lifetime.
+        }
     }
 }
