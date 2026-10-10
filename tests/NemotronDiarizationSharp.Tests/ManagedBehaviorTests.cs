@@ -1,7 +1,7 @@
-using NemotronSharp;
+using NemotronDiarizationSharp;
 using Xunit;
 
-namespace NemotronSharp.Tests;
+namespace NemotronDiarizationSharp.Tests;
 
 public sealed class ManagedBehaviorTests
 {

@@ -1,6 +1,6 @@
 using Microsoft.Win32.SafeHandles;
 
-namespace NemotronSharp.Native;
+namespace NemotronDiarizationSharp.Native;
 
 internal sealed class ModelHandle : SafeHandleZeroOrMinusOneIsInvalid
 {

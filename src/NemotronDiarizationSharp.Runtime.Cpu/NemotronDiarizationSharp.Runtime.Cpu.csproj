@@ -1,11 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>NemotronDiarizationSharp.Runtime.Cpu</AssemblyName>
+    <RootNamespace>NemotronDiarizationSharp.Runtime.Cpu</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-    <PackageId>NemotronSharp.Runtime.Cpu</PackageId>
-    <Description>Official NVIDIA NeMo-Speech.cpp v0.2.0 Windows x64 CPU runtime assets.</Description>
+    <PackageId>NemotronDiarizationSharp.Runtime.Cpu</PackageId>
+    <Description>Windows x64 CPU runtime assets for NVIDIA NeMo-Speech.cpp v0.2.0, used by the independent NemotronDiarizationSharp wrapper.</Description>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="runtimes\win-x64\native\*.dll" />

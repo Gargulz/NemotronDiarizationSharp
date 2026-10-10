@@ -1,7 +1,7 @@
-using NemotronSharp;
+using NemotronDiarizationSharp;
 using Xunit;
 
-namespace NemotronSharp.Tests;
+namespace NemotronDiarizationSharp.Tests;
 
 public sealed class WindowsNativeInferenceTests
 {
@@ -11,10 +11,10 @@ public sealed class WindowsNativeInferenceTests
         if (!OperatingSystem.IsWindows() || Environment.Is64BitProcess is false)
             throw Xunit.Sdk.SkipException.ForSkip("The native smoke test requires a Windows x64 process.");
 
-        string? modelPath = Environment.GetEnvironmentVariable("NEMOTONSHARP_MODEL");
-        string? pcmPath = Environment.GetEnvironmentVariable("NEMOTONSHARP_PCM_F32LE");
+        string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
+        string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
         if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
-            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONSHARP_MODEL and NEMOTONSHARP_PCM_F32LE to run native CPU inference.");
+            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
 
         byte[] bytes = File.ReadAllBytes(pcmPath);
         Assert.NotEmpty(bytes);
@@ -37,5 +37,11 @@ public sealed class WindowsNativeInferenceTests
         Assert.Equal(model.SpeakerCount, result.SpeakerCount);
         float probability = result.GetProbability(result.FirstProbabilityFrame, 0);
         Assert.InRange(probability, 0f, 1f);
+    }
+
+    private static string? GetConfiguredPath(string canonicalName, string legacyName)
+    {
+        string? value = Environment.GetEnvironmentVariable(canonicalName);
+        return string.IsNullOrWhiteSpace(value) ? Environment.GetEnvironmentVariable(legacyName) : value;
     }
 }

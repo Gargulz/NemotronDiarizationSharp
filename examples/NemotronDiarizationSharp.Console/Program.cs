@@ -1,8 +1,8 @@
-using NemotronSharp;
+using NemotronDiarizationSharp;
 
 if (args.Length != 3)
 {
-    Console.Error.WriteLine("Usage: NemotronSharp.Console <model.gguf> <mono-pcm-f32le.raw> <sample-rate>");
+    Console.Error.WriteLine("Usage: NemotronDiarizationSharp.Console <model.gguf> <mono-pcm-f32le.raw> <sample-rate>");
     return 2;
 }
 

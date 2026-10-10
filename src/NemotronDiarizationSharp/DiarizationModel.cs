@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using NemotronSharp.Native;
+using NemotronDiarizationSharp.Native;
 
-namespace NemotronSharp;
+namespace NemotronDiarizationSharp;
 
 public sealed class DiarizationModel : IDisposable
 {

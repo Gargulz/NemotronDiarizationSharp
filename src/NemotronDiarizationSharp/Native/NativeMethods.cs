@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace NemotronSharp.Native;
+namespace NemotronDiarizationSharp.Native;
 
 internal static class NativeMethods
 {
@@ -71,7 +71,9 @@ internal static class NativeMethods
         if (!string.Equals(libraryName, LibraryName, StringComparison.Ordinal))
             return 0;
 
-        string? configuredDirectory = Environment.GetEnvironmentVariable("NEMOTONSHARP_NATIVE_DIR");
+        string? configuredDirectory = Environment.GetEnvironmentVariable("NEMOTONDIARIZATIONSHARP_NATIVE_DIR");
+        if (string.IsNullOrWhiteSpace(configuredDirectory))
+            configuredDirectory = Environment.GetEnvironmentVariable("NEMOTONSHARP_NATIVE_DIR");
         string[] candidates =
         [
             Path.Combine(AppContext.BaseDirectory, "nemo_speech_asr_c.dll"),

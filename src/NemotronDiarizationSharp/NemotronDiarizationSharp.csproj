@@ -1,11 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>NemotronDiarizationSharp</AssemblyName>
+    <RootNamespace>NemotronDiarizationSharp</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NemotronSharp.Runtime.Cpu\NemotronSharp.Runtime.Cpu.csproj" />
+    <ProjectReference Include="..\NemotronDiarizationSharp.Runtime.Cpu\NemotronDiarizationSharp.Runtime.Cpu.csproj" />
   </ItemGroup>
 </Project>
