@@ -155,6 +155,94 @@ public sealed class WindowsNativeInferenceTests
     }
 
     [Fact]
+    public void CpuRuntimeReadsIncrementalFramesThroughFinishWithoutDuplicates()
+    {
+        RequireWindowsX64();
+
+        string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
+        string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
+        if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
+            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
+
+        float[] samples = ReadPcm(pcmPath);
+        using var model = DiarizationModel.Load(modelPath);
+        using var stream = model.OpenStream();
+        var batches = new List<DiarizationFrameBatch>();
+        long nextFrame = 0;
+        long changedPublishedProbabilities = 0;
+        int chunkSize = samples.Length / 4;
+
+        for (int start = 0; start < samples.Length; start += chunkSize)
+        {
+            int count = Math.Min(chunkSize, samples.Length - start);
+            stream.Push(samples.AsSpan(start, count), sampleRate: 16000);
+            DiarizationSnapshot beforeRead = stream.GetSnapshot();
+            Assert.Equal(0, beforeRead.FirstProbabilityFrame);
+
+            foreach (DiarizationFrameBatch previous in batches)
+            {
+                long end = previous.FirstFrameIndex + previous.FrameCount;
+                long checkStart = Math.Max(previous.FirstFrameIndex, beforeRead.FirstProbabilityFrame);
+                long checkEnd = Math.Min(end, beforeRead.FrameCount);
+                for (long frame = checkStart; frame < checkEnd; frame++)
+                {
+                    for (int speaker = 0; speaker < previous.SpeakerCount; speaker++)
+                    {
+                        if (previous.GetProbability(frame, speaker) != beforeRead.GetProbability(frame, speaker))
+                            changedPublishedProbabilities++;
+                    }
+                }
+            }
+
+            DiarizationFrameBatch batch = stream.ReadNewFrames();
+            Assert.Equal(nextFrame, batch.FirstFrameIndex);
+            Assert.Equal(beforeRead.FrameCount - nextFrame, batch.FrameCount);
+            Assert.Equal(beforeRead.SpeakerCount, batch.SpeakerCount);
+            nextFrame = checked(nextFrame + batch.FrameCount);
+            batches.Add(batch);
+
+            DiarizationFrameBatch empty = stream.ReadNewFrames();
+            Assert.Equal(nextFrame, empty.FirstFrameIndex);
+            Assert.Equal(0, empty.FrameCount);
+        }
+
+        stream.Finish();
+        DiarizationFrameBatch finalTail = stream.ReadNewFrames();
+        Assert.Equal(nextFrame, finalTail.FirstFrameIndex);
+        Assert.True(finalTail.FrameCount > 0, "Finish should publish the remaining frame tail for this fixture.");
+        nextFrame = checked(nextFrame + finalTail.FrameCount);
+        batches.Add(finalTail);
+        Assert.Equal(0, stream.ReadNewFrames().FrameCount);
+
+        DiarizationSnapshot finalSnapshot = stream.GetSnapshot();
+        Assert.Equal(finalSnapshot.FrameCount, nextFrame);
+        Assert.Equal(0, finalSnapshot.FirstProbabilityFrame);
+        Assert.Equal(model.SpeakerCount, finalSnapshot.SpeakerCount);
+
+        long mismatchesAgainstFinal = 0;
+        foreach (DiarizationFrameBatch batch in batches)
+        {
+            for (int offset = 0; offset < batch.FrameCount; offset++)
+            {
+                long frame = batch.FirstFrameIndex + offset;
+                for (int speaker = 0; speaker < batch.SpeakerCount; speaker++)
+                {
+                    if (batch.GetProbability(frame, speaker) != finalSnapshot.GetProbability(frame, speaker))
+                        mismatchesAgainstFinal++;
+                }
+            }
+        }
+
+        _output.WriteLine($"Incremental batches returned {nextFrame} frames; published probabilities changed during later pushes: {changedPublishedProbabilities}; differences from final snapshot: {mismatchesAgainstFinal}.");
+        Assert.StartsWith("nemo-speech-asr 0.2.0", DiarizationModel.NativeRuntimeVersion, StringComparison.Ordinal);
+
+        stream.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => stream.ReadNewFrames());
+        DiarizationFrameBatch retained = batches.First(batch => batch.FrameCount > 0);
+        _ = retained.GetProbability(retained.FirstFrameIndex, 0);
+    }
+
+    [Fact]
     public void CpuRuntimeAcceptsV3PresetAndPropagatesNativeConfigurationErrors()
     {
         RequireWindowsX64();

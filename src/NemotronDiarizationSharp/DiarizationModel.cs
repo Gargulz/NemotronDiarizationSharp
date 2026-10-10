@@ -230,6 +230,7 @@ public sealed class DiarizationStream : IDisposable
     private readonly double _secondsPerFrame;
     private bool _finished;
     private int? _sampleRate;
+    private readonly IncrementalFrameCursor _frameCursor = new();
 
     internal DiarizationStream(StreamHandle handle, int speakerCount, double secondsPerFrame)
     {
@@ -316,11 +317,55 @@ public sealed class DiarizationStream : IDisposable
         }
     }
 
+    /// <summary>Reads newly available frame probabilities without advancing snapshot reads.</summary>
+    /// <remarks>
+    /// Native v0.2.0 copies the complete retained probability window for each read. Read often
+    /// enough to avoid native history compaction; returned batches own their managed values.
+    /// </remarks>
+    public DiarizationFrameBatch ReadNewFrames()
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            return ReadNewFramesCore(_handle, _speakerCount, _secondsPerFrame, _frameCursor);
+        }
+    }
+
     private DiarizationSnapshot GetSnapshotCore(DiarizationSegmentationOptions? segmentationOptions)
     {
         ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
         NativeSegmentationConfig? nativeSegmentation = segmentationOptions?.ToNativeConfig();
         return ReadSnapshot(_handle, _speakerCount, _secondsPerFrame, _finished, nativeSegmentation);
+    }
+
+    private static DiarizationFrameBatch ReadNewFramesCore(StreamHandle handle, int speakerCount,
+        double secondsPerFrame, IncrementalFrameCursor cursor)
+    {
+        ObjectDisposedException.ThrowIf(handle.IsClosed, handle);
+        long frameCount = NativeMethods.DiarFrameCount(handle);
+        long firstFrame = NativeMethods.DiarFrameProbsStart(handle);
+        if (frameCount < 0 || firstFrame < 0 || firstFrame > frameCount)
+            throw new InvalidOperationException("The native library returned invalid frame bounds.");
+        if (speakerCount <= 0 || !double.IsFinite(secondsPerFrame) || secondsPerFrame <= 0)
+            throw new InvalidOperationException("The stream contains invalid native frame metadata.");
+
+        cursor.ValidateWindow(firstFrame, frameCount);
+
+        long retainedFrames = frameCount - firstFrame;
+        if (retainedFrames > Array.MaxLength / speakerCount)
+            throw new InvalidOperationException("The retained probability buffer exceeds managed array limits.");
+        int floatCount = checked((int)(retainedFrames * speakerCount));
+        float[] retainedProbabilities = new float[floatCount];
+        if (retainedProbabilities.Length > 0)
+        {
+            NativeStatus status = NativeMethods.DiarFrameProbs(handle, retainedProbabilities,
+                (nuint)retainedProbabilities.Length);
+            if (status != NativeStatus.Ok)
+                throw NativeCallException.Create(status);
+        }
+
+        return cursor.CreateBatch(firstFrame, frameCount, speakerCount, secondsPerFrame,
+            retainedProbabilities);
     }
 
     internal static DiarizationSnapshot ReadSnapshot(StreamHandle handle, int speakerCount,

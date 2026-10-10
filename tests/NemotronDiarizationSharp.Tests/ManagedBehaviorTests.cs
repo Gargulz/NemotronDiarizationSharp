@@ -46,6 +46,89 @@ public sealed class ManagedBehaviorTests
     }
 
     [Fact]
+    public void IncrementalCursorReturnsOnlyNewFrameMajorValuesWithAbsoluteIndexes()
+    {
+        var cursor = new IncrementalFrameCursor();
+
+        DiarizationFrameBatch first = cursor.CreateBatch(0, 2, 2, 0.01, [0.1f, 0.2f, 0.3f, 0.4f]);
+        Assert.Equal(0, first.FirstFrameIndex);
+        Assert.Equal(2, first.FrameCount);
+        Assert.Equal(2, first.SpeakerCount);
+        Assert.Equal(0.01, first.SecondsPerFrame);
+        Assert.Equal(new[] { 0.1f, 0.2f, 0.3f, 0.4f }, first.Probabilities);
+        Assert.Equal(0.4f, first.GetProbability(frameIndex: 1, speakerIndex: 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => first.GetProbability(frameIndex: 2, speakerIndex: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => first.GetProbability(frameIndex: 0, speakerIndex: 2));
+
+        DiarizationFrameBatch second = cursor.CreateBatch(0, 4, 2, 0.01,
+            [0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f]);
+        Assert.Equal(2, second.FirstFrameIndex);
+        Assert.Equal(2, second.FrameCount);
+        Assert.Equal(new[] { 0.5f, 0.6f, 0.7f, 0.8f }, second.Probabilities);
+        Assert.Equal(0.8f, second.GetProbability(frameIndex: 3, speakerIndex: 1));
+
+        DiarizationFrameBatch empty = cursor.CreateBatch(0, 4, 2, 0.01,
+            [0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f]);
+        Assert.Equal(4, empty.FirstFrameIndex);
+        Assert.Equal(0, empty.FrameCount);
+        Assert.Empty(empty.Probabilities);
+        Assert.Equal(4, cursor.NextUnreadFrame);
+    }
+
+    [Fact]
+    public void IncrementalCursorEmptyReadDoesNotAdvanceAndCursorsAreIndependent()
+    {
+        var firstCursor = new IncrementalFrameCursor();
+        var secondCursor = new IncrementalFrameCursor();
+
+        DiarizationFrameBatch empty = firstCursor.CreateBatch(0, 0, 1, 0.08, []);
+        Assert.Equal(0, empty.FirstFrameIndex);
+        Assert.Equal(0, empty.FrameCount);
+        Assert.Equal(0, firstCursor.NextUnreadFrame);
+
+        _ = firstCursor.CreateBatch(0, 1, 1, 0.08, [0.25f]);
+        Assert.Equal(1, firstCursor.NextUnreadFrame);
+        Assert.Equal(0, secondCursor.NextUnreadFrame);
+        DiarizationFrameBatch independent = secondCursor.CreateBatch(0, 1, 1, 0.08, [0.75f]);
+        Assert.Equal(0, independent.FirstFrameIndex);
+        Assert.Equal(0.75f, independent.GetProbability(0, 0));
+    }
+
+    [Fact]
+    public void IncrementalCursorDetectsHistoryGapWithoutAdvancing()
+    {
+        var cursor = new IncrementalFrameCursor();
+        _ = cursor.CreateBatch(0, 2, 1, 0.08, [0.1f, 0.2f]);
+
+        DiarizationFrameHistoryGapException exception = Assert.Throws<DiarizationFrameHistoryGapException>(
+            () => cursor.CreateBatch(4, 6, 1, 0.08, [0.4f, 0.5f]));
+        Assert.Equal(2, exception.MissingStartFrame);
+        Assert.Equal(4, exception.MissingEndFrameExclusive);
+        Assert.Equal(4, exception.EarliestAvailableFrame);
+        Assert.Contains("[2, 4)", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(2, cursor.NextUnreadFrame);
+
+        DiarizationFrameBatch retry = cursor.CreateBatch(2, 4, 1, 0.08, [0.3f, 0.4f]);
+        Assert.Equal(2, retry.FirstFrameIndex);
+        Assert.Equal(2, retry.FrameCount);
+        Assert.Equal(4, cursor.NextUnreadFrame);
+    }
+
+    [Fact]
+    public void IncrementalCursorRejectsInvalidNativeMetadataAndArithmeticBounds()
+    {
+        var cursor = new IncrementalFrameCursor();
+
+        Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(-1, 0, 1, 0.08, []));
+        Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(2, 1, 1, 0.08, []));
+        Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(0, 1, 0, 0.08, []));
+        Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(0, 1, 1, double.NaN, [0.5f]));
+        Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(0, 1, 1, 0.08, []));
+        Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(0, 1, 1, 0.08, [float.NaN]));
+        Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(0, long.MaxValue, 1, 0.08, []));
+    }
+
+    [Fact]
     public void PushInputRequiresExplicitValidRateAndFiniteSamples()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => DiarizationStream.ValidatePushInput([], 0, null));
