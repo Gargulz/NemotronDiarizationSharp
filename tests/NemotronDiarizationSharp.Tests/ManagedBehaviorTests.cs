@@ -1,4 +1,6 @@
+using System.Runtime.InteropServices;
 using NemotronDiarizationSharp;
+using NemotronDiarizationSharp.Native;
 using Xunit;
 
 namespace NemotronDiarizationSharp.Tests;
@@ -76,6 +78,96 @@ public sealed class ManagedBehaviorTests
 
         DiarizationStream.ValidateOfflineInput([], 8000);
         DiarizationStream.ValidateOfflineInput([-1f, 0f, 1f], 96000);
+    }
+
+    [Fact]
+    public void ModelOptionsPreserveNativeGeometrySentinels()
+    {
+        var defaults = new DiarModelConfig();
+        new DiarizationModelOptions().ApplyNativeOverrides(ref defaults);
+
+        Assert.Equal(0, defaults.ChunkFrames);
+        Assert.Equal(0, defaults.RightContextFrames);
+        Assert.Equal(-1, defaults.LeftContextFrames);
+        Assert.Equal(0, defaults.FifoFrames);
+        Assert.Equal(0, defaults.SpeakerCacheFrames);
+        Assert.Equal(0, defaults.UpdatePeriodFrames);
+
+        var overrides = new DiarModelConfig();
+        new DiarizationModelOptions
+        {
+            ChunkFrames = 8,
+            RightContextFrames = 2,
+            LeftContextFrames = 0,
+            FifoFrames = 32,
+            SpeakerCacheFrames = 40,
+            UpdatePeriodFrames = 4
+        }.ApplyNativeOverrides(ref overrides);
+
+        Assert.Equal(8, overrides.ChunkFrames);
+        Assert.Equal(2, overrides.RightContextFrames);
+        Assert.Equal(0, overrides.LeftContextFrames);
+        Assert.Equal(32, overrides.FifoFrames);
+        Assert.Equal(40, overrides.SpeakerCacheFrames);
+        Assert.Equal(4, overrides.UpdatePeriodFrames);
+    }
+
+    [Fact]
+    public void SegmentationOptionsPreserveNativeDefaultSentinelsAndRejectNonFiniteValues()
+    {
+        NativeSegmentationConfig defaults = new DiarizationSegmentationOptions().ToNativeConfig();
+        Assert.Equal((nuint)Marshal.SizeOf<NativeSegmentationConfig>(), defaults.Size);
+        Assert.Equal(0f, defaults.Onset);
+        Assert.Equal(0f, defaults.Offset);
+        Assert.Equal(0d, defaults.PadOnsetSec);
+        Assert.Equal(0d, defaults.PadOffsetSec);
+        Assert.Equal(0d, defaults.MinGapSec);
+        Assert.Equal(0d, defaults.MinDurationSec);
+
+        NativeSegmentationConfig mapped = new DiarizationSegmentationOptions
+        {
+            Onset = 0.7f,
+            Offset = 0.4f,
+            PadOnsetSeconds = 0.1,
+            PadOffsetSeconds = 0.2,
+            MinGapSeconds = 0.3,
+            MinDurationSeconds = 0.5
+        }.ToNativeConfig();
+
+        Assert.Equal(0.7f, mapped.Onset);
+        Assert.Equal(0.4f, mapped.Offset);
+        Assert.Equal(0.1, mapped.PadOnsetSec);
+        Assert.Equal(0.2, mapped.PadOffsetSec);
+        Assert.Equal(0.3, mapped.MinGapSec);
+        Assert.Equal(0.5, mapped.MinDurationSec);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new DiarizationSegmentationOptions { Onset = float.NaN }.ToNativeConfig());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new DiarizationSegmentationOptions { MinGapSeconds = double.PositiveInfinity }.ToNativeConfig());
+    }
+
+    [Fact]
+    public void NativeConfigurationStructsMatchThePinnedX64AbiLayout()
+    {
+        Assert.Equal(8, IntPtr.Size);
+        Assert.Equal(56, Marshal.SizeOf<DiarModelConfig>());
+        Assert.Equal(48, Marshal.SizeOf<NativeSegmentationConfig>());
+
+        Assert.Equal(0, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.Size)).ToInt32());
+        Assert.Equal(8, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.ModelPath)).ToInt32());
+        Assert.Equal(16, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.Gpu)).ToInt32());
+        Assert.Equal(24, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.Preset)).ToInt32());
+        Assert.Equal(32, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.ChunkFrames)).ToInt32());
+        Assert.Equal(36, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.RightContextFrames)).ToInt32());
+        Assert.Equal(40, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.LeftContextFrames)).ToInt32());
+        Assert.Equal(44, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.FifoFrames)).ToInt32());
+        Assert.Equal(48, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.SpeakerCacheFrames)).ToInt32());
+        Assert.Equal(52, Marshal.OffsetOf<DiarModelConfig>(nameof(DiarModelConfig.UpdatePeriodFrames)).ToInt32());
+        Assert.Equal(0, Marshal.OffsetOf<NativeSegmentationConfig>(nameof(NativeSegmentationConfig.Size)).ToInt32());
+        Assert.Equal(8, Marshal.OffsetOf<NativeSegmentationConfig>(nameof(NativeSegmentationConfig.Onset)).ToInt32());
+        Assert.Equal(12, Marshal.OffsetOf<NativeSegmentationConfig>(nameof(NativeSegmentationConfig.Offset)).ToInt32());
+        Assert.Equal(16, Marshal.OffsetOf<NativeSegmentationConfig>(nameof(NativeSegmentationConfig.PadOnsetSec)).ToInt32());
+        Assert.Equal(24, Marshal.OffsetOf<NativeSegmentationConfig>(nameof(NativeSegmentationConfig.PadOffsetSec)).ToInt32());
+        Assert.Equal(32, Marshal.OffsetOf<NativeSegmentationConfig>(nameof(NativeSegmentationConfig.MinGapSec)).ToInt32());
+        Assert.Equal(40, Marshal.OffsetOf<NativeSegmentationConfig>(nameof(NativeSegmentationConfig.MinDurationSec)).ToInt32());
     }
 
     [Fact]

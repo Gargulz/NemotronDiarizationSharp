@@ -34,6 +34,8 @@ public sealed class WindowsNativeInferenceTests
             Assert.True(float.IsFinite(emptyResult.GetProbability(0, speaker)));
 
         DiarizationSnapshot result = model.ProcessOffline(samples, sampleRate: 16000);
+        DiarizationSnapshot filtered = model.ProcessOffline(samples, sampleRate: 16000,
+            new DiarizationSegmentationOptions { MinDurationSeconds = 30 });
 
         Assert.True(result.IsFinal);
         Assert.Equal(0, result.FirstProbabilityFrame);
@@ -66,6 +68,8 @@ public sealed class WindowsNativeInferenceTests
             Assert.InRange(segment.Speaker, 1, result.SpeakerCount);
             previousStart = segment.StartTime;
         }
+        Assert.NotEmpty(result.Segments);
+        Assert.Empty(filtered.Segments);
 
         _output.WriteLine($"Offline runtime {DiarizationModel.NativeRuntimeVersion}; speakers {result.SpeakerCount}; frames {result.FrameCount}; cadence {result.SecondsPerFrame:F3}s; segments: {string.Join(", ", result.Segments.Select(segment => $"speaker {segment.Speaker} {segment.StartTime:F2}-{segment.EndTime:F2}s"))}");
 
@@ -103,6 +107,8 @@ public sealed class WindowsNativeInferenceTests
         stream.Finish();
         stream.Finish();
         DiarizationSnapshot result = stream.GetSnapshot();
+        DiarizationSnapshot explicitDefaults = stream.GetSnapshot(new DiarizationSegmentationOptions());
+        DiarizationSnapshot filtered = stream.GetSnapshot(new DiarizationSegmentationOptions { MinDurationSeconds = 30 });
 
         Assert.True(result.IsFinal);
         Assert.True(result.FrameCount > 0);
@@ -124,6 +130,9 @@ public sealed class WindowsNativeInferenceTests
             Assert.InRange(segment.Speaker, 1, result.SpeakerCount);
             previousStart = segment.StartTime;
         }
+        Assert.Equal(result.Segments, explicitDefaults.Segments);
+        Assert.NotEmpty(result.Segments);
+        Assert.Empty(filtered.Segments);
 
         using (var emptyStream = model.OpenStream())
         {
@@ -143,6 +152,42 @@ public sealed class WindowsNativeInferenceTests
         Assert.Throws<ObjectDisposedException>(() => stream.GetSnapshot());
         Assert.Throws<ObjectDisposedException>(() => stream.Push([0f], sampleRate: 16000));
         Assert.Throws<ObjectDisposedException>(() => stream.Finish());
+    }
+
+    [Fact]
+    public void CpuRuntimeAcceptsV3PresetAndPropagatesNativeConfigurationErrors()
+    {
+        RequireWindowsX64();
+
+        string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
+        if (string.IsNullOrWhiteSpace(modelPath))
+            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL to run native CPU inference.");
+
+        using (DiarizationModel model = DiarizationModel.Load(modelPath, new DiarizationModelOptions
+        {
+            Preset = "v3-streaming",
+            LeftContextFrames = 0
+        }))
+        {
+            Assert.Equal(8, model.SpeakerCount);
+            Assert.Equal(0.01, model.SecondsPerFrame, precision: 8);
+            using DiarizationStream stream = model.OpenStream();
+            stream.Finish();
+            Assert.True(stream.GetSnapshot().IsFinal);
+        }
+
+        NativeCallException unsupportedPreset = Assert.Throws<NativeCallException>(() =>
+            DiarizationModel.Load(modelPath, new DiarizationModelOptions { Preset = "unsupported-preset" }));
+        Assert.Contains("InvalidArgument", unsupportedPreset.Message, StringComparison.Ordinal);
+
+        NativeCallException invalidGeometry = Assert.Throws<NativeCallException>(() =>
+            DiarizationModel.Load(modelPath, new DiarizationModelOptions
+            {
+                Preset = "v3-streaming",
+                SpeakerCacheFrames = 1,
+                UpdatePeriodFrames = 2
+            }));
+        Assert.Contains("InvalidArgument", invalidGeometry.Message, StringComparison.Ordinal);
     }
 
     [Fact]

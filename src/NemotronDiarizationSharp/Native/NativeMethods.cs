@@ -51,6 +51,9 @@ internal static class NativeMethods
     [DllImport(LibraryName, EntryPoint = "nemo_speech_diar_segments", CallingConvention = CallingConvention.Cdecl)]
     internal static extern NativeStatus DiarSegments(StreamHandle stream, nint config, [Out] NativeSegment[]? segments, nuint capacity, out nuint count);
 
+    [DllImport(LibraryName, EntryPoint = "nemo_speech_diar_segments", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern NativeStatus DiarSegmentsWithConfig(StreamHandle stream, in NativeSegmentationConfig config, [Out] NativeSegment[]? segments, nuint capacity, out nuint count);
+
     [DllImport(LibraryName, EntryPoint = "nemo_speech_asr_last_error", CallingConvention = CallingConvention.Cdecl)]
     private static extern nint AsrLastError();
 
@@ -123,4 +126,17 @@ internal struct NativeSegment
     internal double StartTime;
     internal double EndTime;
     internal int Speaker;
+}
+
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct NativeSegmentationConfig
+{
+    internal nuint Size;
+    internal float Onset;
+    internal float Offset;
+    internal double PadOnsetSec;
+    internal double PadOffsetSec;
+    internal double MinGapSec;
+    internal double MinDurationSec;
 }

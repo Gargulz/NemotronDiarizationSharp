@@ -41,22 +41,40 @@ public sealed class DiarizationModel : IDisposable
     public static string NativeRuntimeVersion => NativeMethods.GetVersion();
 
     public static DiarizationModel Load(string modelPath)
+        => LoadCore(modelPath, options: null);
+
+    /// <summary>Loads a model using the requested CPU streaming geometry.</summary>
+    public static DiarizationModel Load(string modelPath, DiarizationModelOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return LoadCore(modelPath, options);
+    }
+
+    private static DiarizationModel LoadCore(string modelPath, DiarizationModelOptions? options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
         string fullPath = Path.GetFullPath(modelPath);
         if (!File.Exists(fullPath))
             throw new FileNotFoundException("The diarization model file was not found.", fullPath);
 
-        nint utf8Path = Marshal.StringToCoTaskMemUTF8(fullPath);
+        nint utf8Path = 0;
+        nint utf8Preset = 0;
         try
         {
+            utf8Path = Marshal.StringToCoTaskMemUTF8(fullPath);
+            if (options?.Preset is not null)
+                utf8Preset = Marshal.StringToCoTaskMemUTF8(options.Preset);
+
             var config = new DiarModelConfig
             {
                 Size = (nuint)Marshal.SizeOf<DiarModelConfig>(),
                 ModelPath = utf8Path,
                 Gpu = -1,
+                Preset = utf8Preset,
                 LeftContextFrames = -1
             };
+            if (options is not null)
+                options.ApplyNativeOverrides(ref config);
 
             NativeStatus status = NativeMethods.DiarCreate(in config, out nint model);
             if (status != NativeStatus.Ok)
@@ -74,7 +92,10 @@ public sealed class DiarizationModel : IDisposable
         }
         finally
         {
-            Marshal.FreeCoTaskMem(utf8Path);
+            if (utf8Preset != 0)
+                Marshal.FreeCoTaskMem(utf8Preset);
+            if (utf8Path != 0)
+                Marshal.FreeCoTaskMem(utf8Path);
         }
     }
 
@@ -130,11 +151,17 @@ public sealed class DiarizationModel : IDisposable
     /// <param name="sampleRate">Input rate from 8000 to 96000 Hz; the native runtime resamples to the model rate.</param>
     /// <returns>A completed snapshot with probability history beginning at frame zero.</returns>
     public DiarizationSnapshot ProcessOffline(ReadOnlySpan<float> samples, int sampleRate)
+        => ProcessOffline(samples, sampleRate, segmentationOptions: null);
+
+    /// <summary>Processes one complete input and extracts segments using the supplied settings.</summary>
+    public DiarizationSnapshot ProcessOffline(ReadOnlySpan<float> samples, int sampleRate,
+        DiarizationSegmentationOptions? segmentationOptions)
     {
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             DiarizationStream.ValidateOfflineInput(samples, sampleRate);
+            NativeSegmentationConfig? nativeSegmentation = segmentationOptions?.ToNativeConfig();
             float[] pcm = samples.ToArray();
             bool modelReferenceAdded = false;
             nint result = 0;
@@ -153,7 +180,8 @@ public sealed class DiarizationModel : IDisposable
                 modelReferenceAdded = false;
                 try
                 {
-                    return DiarizationStream.ReadSnapshot(job, SpeakerCount, SecondsPerFrame, isFinal: true);
+                    return DiarizationStream.ReadSnapshot(job, SpeakerCount, SecondsPerFrame,
+                        isFinal: true, segmentationConfig: nativeSegmentation);
                 }
                 finally
                 {
@@ -277,21 +305,26 @@ public sealed class DiarizationStream : IDisposable
     }
 
     public DiarizationSnapshot GetSnapshot()
+        => GetSnapshot(segmentationOptions: null);
+
+    /// <summary>Reads a snapshot, applying segmentation settings to the native result.</summary>
+    public DiarizationSnapshot GetSnapshot(DiarizationSegmentationOptions? segmentationOptions)
     {
         lock (_sync)
         {
-            return GetSnapshotCore();
+            return GetSnapshotCore(segmentationOptions);
         }
     }
 
-    private DiarizationSnapshot GetSnapshotCore()
+    private DiarizationSnapshot GetSnapshotCore(DiarizationSegmentationOptions? segmentationOptions)
     {
         ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
-        return ReadSnapshot(_handle, _speakerCount, _secondsPerFrame, _finished);
+        NativeSegmentationConfig? nativeSegmentation = segmentationOptions?.ToNativeConfig();
+        return ReadSnapshot(_handle, _speakerCount, _secondsPerFrame, _finished, nativeSegmentation);
     }
 
     internal static DiarizationSnapshot ReadSnapshot(StreamHandle handle, int speakerCount,
-        double secondsPerFrame, bool isFinal)
+        double secondsPerFrame, bool isFinal, NativeSegmentationConfig? segmentationConfig = null)
     {
         ObjectDisposedException.ThrowIf(handle.IsClosed, handle);
         long frameCount = NativeMethods.DiarFrameCount(handle);
@@ -312,7 +345,7 @@ public sealed class DiarizationStream : IDisposable
                 throw NativeCallException.Create(probabilityStatus);
         }
 
-        NativeStatus countStatus = NativeMethods.DiarSegments(handle, 0, null, 0, out nuint segmentCount);
+        NativeStatus countStatus = ReadSegments(handle, segmentationConfig, null, 0, out nuint segmentCount);
         if (countStatus != NativeStatus.Ok)
             throw NativeCallException.Create(countStatus);
         if (segmentCount > (nuint)Array.MaxLength)
@@ -321,7 +354,8 @@ public sealed class DiarizationStream : IDisposable
         NativeSegment[] nativeSegments = new NativeSegment[(int)segmentCount];
         if (nativeSegments.Length > 0)
         {
-            NativeStatus segmentsStatus = NativeMethods.DiarSegments(handle, 0, nativeSegments, (nuint)nativeSegments.Length, out segmentCount);
+            NativeStatus segmentsStatus = ReadSegments(handle, segmentationConfig, nativeSegments,
+                (nuint)nativeSegments.Length, out segmentCount);
             if (segmentsStatus != NativeStatus.Ok)
                 throw NativeCallException.Create(segmentsStatus);
             if (segmentCount != (nuint)nativeSegments.Length)
@@ -351,6 +385,16 @@ public sealed class DiarizationStream : IDisposable
         }
 
         return new DiarizationSnapshot(firstFrame, frameCount, speakerCount, secondsPerFrame, probabilities, segments, isFinal);
+    }
+
+    private static NativeStatus ReadSegments(StreamHandle handle, NativeSegmentationConfig? config,
+        NativeSegment[]? segments, nuint capacity, out nuint count)
+    {
+        if (!config.HasValue)
+            return NativeMethods.DiarSegments(handle, 0, segments, capacity, out count);
+
+        NativeSegmentationConfig nativeConfig = config.Value;
+        return NativeMethods.DiarSegmentsWithConfig(handle, in nativeConfig, segments, capacity, out count);
     }
 
     public void Dispose()
