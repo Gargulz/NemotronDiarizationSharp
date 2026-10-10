@@ -121,6 +121,66 @@ public sealed class DiarizationModel : IDisposable
         }
     }
 
+    /// <summary>
+    /// Processes mono float32 PCM as one stateless full-attention job. Finite samples are
+    /// passed unchanged; unlike streaming, offline processing is limited by the model's
+    /// positional capacity.
+    /// </summary>
+    /// <param name="samples">Mono float32 PCM samples, expected to be normalized to [-1, 1].</param>
+    /// <param name="sampleRate">Input rate from 8000 to 96000 Hz; the native runtime resamples to the model rate.</param>
+    /// <returns>A completed snapshot with probability history beginning at frame zero.</returns>
+    public DiarizationSnapshot ProcessOffline(ReadOnlySpan<float> samples, int sampleRate)
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            DiarizationStream.ValidateOfflineInput(samples, sampleRate);
+            float[] pcm = samples.ToArray();
+            bool modelReferenceAdded = false;
+            nint result = 0;
+            try
+            {
+                // Удерживаем модель, пока нативный результат не будет закрыт.
+                _handle.DangerousAddRef(ref modelReferenceAdded);
+                NativeStatus status = NativeMethods.DiarOfflineF32(_handle, pcm, (nuint)pcm.Length, sampleRate, out result);
+                if (status != NativeStatus.Ok)
+                    throw NativeCallException.Create(status);
+                if (result == 0)
+                    throw new InvalidOperationException("The native library returned a null offline result handle.");
+
+                var job = new StreamHandle(result, _handle);
+                result = 0;
+                modelReferenceAdded = false;
+                try
+                {
+                    return DiarizationStream.ReadSnapshot(job, SpeakerCount, SecondsPerFrame, isFinal: true);
+                }
+                finally
+                {
+                    job.Dispose();
+                }
+            }
+            finally
+            {
+                bool resultClosed = result == 0;
+                try
+                {
+                    if (result != 0)
+                    {
+                        NativeMethods.DiarStreamClose(result);
+                        resultClosed = true;
+                    }
+                }
+                finally
+                {
+                    if (modelReferenceAdded && resultClosed)
+                        _handle.DangerousRelease();
+                    // При сбое закрытия нативного результата удерживаем модель, чтобы не нарушить её время жизни.
+                }
+            }
+        }
+    }
+
     public void Dispose()
     {
         lock (_sync)
@@ -190,6 +250,18 @@ public sealed class DiarizationStream : IDisposable
         }
     }
 
+    internal static void ValidateOfflineInput(ReadOnlySpan<float> monoPcm, int sampleRate)
+    {
+        if (sampleRate is < 8000 or > 96000)
+            throw new ArgumentOutOfRangeException(nameof(sampleRate), "Sample rate must be between 8 kHz and 96 kHz.");
+
+        foreach (float sample in monoPcm)
+        {
+            if (!float.IsFinite(sample))
+                throw new ArgumentException("PCM samples must be finite float32 values.", nameof(monoPcm));
+        }
+    }
+
     public void Finish()
     {
         lock (_sync)
@@ -215,25 +287,32 @@ public sealed class DiarizationStream : IDisposable
     private DiarizationSnapshot GetSnapshotCore()
     {
         ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
-        long frameCount = NativeMethods.DiarFrameCount(_handle);
-        long firstFrame = NativeMethods.DiarFrameProbsStart(_handle);
+        return ReadSnapshot(_handle, _speakerCount, _secondsPerFrame, _finished);
+    }
+
+    internal static DiarizationSnapshot ReadSnapshot(StreamHandle handle, int speakerCount,
+        double secondsPerFrame, bool isFinal)
+    {
+        ObjectDisposedException.ThrowIf(handle.IsClosed, handle);
+        long frameCount = NativeMethods.DiarFrameCount(handle);
+        long firstFrame = NativeMethods.DiarFrameProbsStart(handle);
         if (frameCount < 0 || firstFrame < 0 || firstFrame > frameCount)
             throw new InvalidOperationException("The native library returned invalid frame bounds.");
 
         long retainedFrames = frameCount - firstFrame;
-        if (retainedFrames > Array.MaxLength / _speakerCount)
+        if (retainedFrames > Array.MaxLength / speakerCount)
             throw new InvalidOperationException("The retained probability buffer exceeds managed array limits.");
-        int floatCount = checked((int)(retainedFrames * _speakerCount));
+        int floatCount = checked((int)(retainedFrames * speakerCount));
 
         float[] probabilities = new float[floatCount];
         if (probabilities.Length > 0)
         {
-            NativeStatus probabilityStatus = NativeMethods.DiarFrameProbs(_handle, probabilities, (nuint)probabilities.Length);
+            NativeStatus probabilityStatus = NativeMethods.DiarFrameProbs(handle, probabilities, (nuint)probabilities.Length);
             if (probabilityStatus != NativeStatus.Ok)
                 throw NativeCallException.Create(probabilityStatus);
         }
 
-        NativeStatus countStatus = NativeMethods.DiarSegments(_handle, 0, null, 0, out nuint segmentCount);
+        NativeStatus countStatus = NativeMethods.DiarSegments(handle, 0, null, 0, out nuint segmentCount);
         if (countStatus != NativeStatus.Ok)
             throw NativeCallException.Create(countStatus);
         if (segmentCount > (nuint)Array.MaxLength)
@@ -242,7 +321,7 @@ public sealed class DiarizationStream : IDisposable
         NativeSegment[] nativeSegments = new NativeSegment[(int)segmentCount];
         if (nativeSegments.Length > 0)
         {
-            NativeStatus segmentsStatus = NativeMethods.DiarSegments(_handle, 0, nativeSegments, (nuint)nativeSegments.Length, out segmentCount);
+            NativeStatus segmentsStatus = NativeMethods.DiarSegments(handle, 0, nativeSegments, (nuint)nativeSegments.Length, out segmentCount);
             if (segmentsStatus != NativeStatus.Ok)
                 throw NativeCallException.Create(segmentsStatus);
             if (segmentCount != (nuint)nativeSegments.Length)
@@ -258,7 +337,7 @@ public sealed class DiarizationStream : IDisposable
                 || segment.StartTime < 0 || segment.EndTime < segment.StartTime
                 || segment.StartTime < previousStart)
                 throw new InvalidOperationException("The native library returned invalid or unordered segment timestamps.");
-            if (segment.Speaker < 1 || segment.Speaker > _speakerCount)
+            if (segment.Speaker < 1 || segment.Speaker > speakerCount)
                 throw new InvalidOperationException($"The native library returned an invalid 1-based speaker ID: {segment.Speaker}.");
 
             segments[index] = new DiarizationSegment(segment.StartTime, segment.EndTime, segment.Speaker);
@@ -271,7 +350,7 @@ public sealed class DiarizationStream : IDisposable
                 throw new InvalidOperationException("The native library returned a speaker probability outside [0, 1].");
         }
 
-        return new DiarizationSnapshot(firstFrame, frameCount, _speakerCount, _secondsPerFrame, probabilities, segments, _finished);
+        return new DiarizationSnapshot(firstFrame, frameCount, speakerCount, secondsPerFrame, probabilities, segments, isFinal);
     }
 
     public void Dispose()

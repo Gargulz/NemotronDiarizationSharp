@@ -27,6 +27,9 @@ internal static class NativeMethods
     [DllImport(LibraryName, EntryPoint = "nemo_speech_diar_stream_open", CallingConvention = CallingConvention.Cdecl)]
     internal static extern NativeStatus DiarStreamOpen(ModelHandle model, out nint stream);
 
+    [DllImport(LibraryName, EntryPoint = "nemo_speech_diar_offline_f32", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern NativeStatus DiarOfflineF32(ModelHandle model, [In] float[] samples, nuint sampleCount, int sampleRate, out nint result);
+
     [DllImport(LibraryName, EntryPoint = "nemo_speech_diar_stream_push_f32", CallingConvention = CallingConvention.Cdecl)]
     internal static extern NativeStatus DiarStreamPushF32(StreamHandle stream, [In] float[] samples, nuint sampleCount, int sampleRate);
 

@@ -65,6 +65,20 @@ public sealed class ManagedBehaviorTests
     }
 
     [Fact]
+    public void OfflineInputRequiresValidRateAndFiniteSamples()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => DiarizationStream.ValidateOfflineInput([], 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => DiarizationStream.ValidateOfflineInput([], 7999));
+        Assert.Throws<ArgumentOutOfRangeException>(() => DiarizationStream.ValidateOfflineInput([], 96001));
+        Assert.Throws<ArgumentException>(() => DiarizationStream.ValidateOfflineInput([float.NaN], 16000));
+        Assert.Throws<ArgumentException>(() => DiarizationStream.ValidateOfflineInput([float.PositiveInfinity], 16000));
+        Assert.Throws<ArgumentException>(() => DiarizationStream.ValidateOfflineInput([float.NegativeInfinity], 16000));
+
+        DiarizationStream.ValidateOfflineInput([], 8000);
+        DiarizationStream.ValidateOfflineInput([-1f, 0f, 1f], 96000);
+    }
+
+    [Fact]
     public void LoadRejectsMissingModelBeforeNativeLoading()
     {
         Assert.Throws<FileNotFoundException>(() => DiarizationModel.Load(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".gguf")));
