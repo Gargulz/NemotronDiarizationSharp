@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>NemotronSharp.Runtime.Cpu</PackageId>
+    <Description>Official NVIDIA NeMo-Speech.cpp v0.2.0 Windows x64 CPU runtime assets.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="runtimes\win-x64\native\*.dll" />
+    <Content Include="runtimes\win-x64\native\*.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="licenses\**\*" Pack="true" PackagePath="licenses\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
