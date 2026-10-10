@@ -1,5 +1,6 @@
 using NemotronDiarizationSharp;
 using NemotronDiarizationSharp.Native;
+using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -240,6 +241,136 @@ public sealed class WindowsNativeInferenceTests
         Assert.Throws<ObjectDisposedException>(() => stream.ReadNewFrames());
         DiarizationFrameBatch retained = batches.First(batch => batch.FrameCount > 0);
         _ = retained.GetProbability(retained.FirstFrameIndex, 0);
+    }
+
+    [Fact]
+    public async Task CpuRuntimeAsyncPushMatchesSynchronousChunksAndKeepsModelAlive()
+    {
+        RequireWindowsX64();
+
+        string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
+        string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
+        if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
+            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
+
+        float[] samples = ReadPcm(pcmPath);
+        using var model = DiarizationModel.Load(modelPath);
+        using var synchronous = model.OpenStream();
+        using var asynchronous = model.OpenStream();
+        model.Dispose();
+
+        int chunkSize = samples.Length / 4;
+        var chunks = new List<ReadOnlyMemory<float>>();
+        for (int start = 0; start < samples.Length; start += chunkSize)
+        {
+            int count = Math.Min(chunkSize, samples.Length - start);
+            chunks.Add(samples.AsMemory(start, count));
+            synchronous.Push(samples.AsSpan(start, count), sampleRate: 16000);
+        }
+
+        await asynchronous.PushChunksAsync(YieldChunksAsync(chunks), sampleRate: 16000);
+        synchronous.Finish();
+        asynchronous.Finish();
+        DiarizationSnapshot syncResult = synchronous.GetSnapshot();
+        DiarizationSnapshot asyncResult = asynchronous.GetSnapshot();
+
+        Assert.Equal(syncResult.FrameCount, asyncResult.FrameCount);
+        Assert.Equal(syncResult.FirstProbabilityFrame, asyncResult.FirstProbabilityFrame);
+        Assert.Equal(syncResult.SpeakerCount, asyncResult.SpeakerCount);
+        Assert.Equal(syncResult.SecondsPerFrame, asyncResult.SecondsPerFrame);
+        Assert.Equal(syncResult.Segments, asyncResult.Segments);
+
+        float maxDifference = 0;
+        for (long frame = syncResult.FirstProbabilityFrame; frame < syncResult.FrameCount; frame++)
+        {
+            for (int speaker = 0; speaker < syncResult.SpeakerCount; speaker++)
+            {
+                maxDifference = Math.Max(maxDifference,
+                    Math.Abs(syncResult.GetProbability(frame, speaker) - asyncResult.GetProbability(frame, speaker)));
+            }
+        }
+
+        _output.WriteLine($"Synchronous/async native comparison: runtime {DiarizationModel.NativeRuntimeVersion}; frames {asyncResult.FrameCount}; max probability difference {maxDifference:G9}.");
+        Assert.InRange(maxDifference, 0f, 1e-5f);
+    }
+
+    [Fact]
+    public async Task CpuRuntimeRejectsConflictingOperationsAndResumesAfterCancellation()
+    {
+        RequireWindowsX64();
+
+        string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
+        string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
+        if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
+            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
+
+        float[] samples = ReadPcm(pcmPath);
+        using var model = DiarizationModel.Load(modelPath);
+        using var stream = model.OpenStream();
+        int split = samples.Length / 2;
+        using var preCanceled = new CancellationTokenSource();
+        preCanceled.Cancel();
+        Action canceledStart = () => _ = stream.PushChunksAsync(
+            YieldChunksAsync([]), sampleRate: 16000, preCanceled.Token);
+        Assert.Throws<OperationCanceledException>(canceledStart);
+
+        stream.Push(samples.AsSpan(0, 1), sampleRate: 16000);
+        Action invalidRate = () => _ = stream.PushChunksAsync(YieldChunksAsync([]), sampleRate: 7999);
+        Action changedRate = () => _ = stream.PushChunksAsync(YieldChunksAsync([]), sampleRate: 48000);
+        Assert.Throws<ArgumentOutOfRangeException>(invalidRate);
+        Assert.Throws<ArgumentException>(changedRate);
+        using var cancellation = new CancellationTokenSource();
+        var waitingForNextChunk = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Task operation = stream.PushChunksAsync(
+            YieldThenWaitAsync(samples.AsMemory(1, split - 1), waitingForNextChunk),
+            sampleRate: 16000, cancellation.Token);
+        await waitingForNextChunk.Task;
+
+        Assert.Throws<InvalidOperationException>(() => stream.Push([0f], sampleRate: 16000));
+        Assert.Throws<InvalidOperationException>(() => stream.Finish());
+        Assert.Throws<InvalidOperationException>(() => stream.GetSnapshot());
+        Assert.Throws<InvalidOperationException>(() => stream.ReadNewFrames());
+        Assert.Throws<InvalidOperationException>(() => stream.Dispose());
+        Action overlappingAsyncPush = () => _ = stream.PushChunksAsync(YieldChunksAsync([]), sampleRate: 16000);
+        Assert.Throws<InvalidOperationException>(overlappingAsyncPush);
+
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation);
+
+        ReadOnlyMemory<float>[] invalidChunks = [new float[] { float.NaN }];
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            stream.PushChunksAsync(YieldChunksAsync(invalidChunks), sampleRate: 16000));
+
+        // Cancellation preserves the successfully pushed prefix; the caller can supply its remainder.
+        stream.Push(samples.AsSpan(split), sampleRate: 16000);
+        stream.Finish();
+        DiarizationSnapshot result = stream.GetSnapshot();
+        Assert.True(result.IsFinal);
+        Assert.Equal(801, result.FrameCount);
+    }
+
+    private static async IAsyncEnumerable<ReadOnlyMemory<float>> YieldChunksAsync(
+        IEnumerable<ReadOnlyMemory<float>> chunks,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        foreach (ReadOnlyMemory<float> chunk in chunks)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Yield();
+            yield return chunk;
+        }
+    }
+
+    private static async IAsyncEnumerable<ReadOnlyMemory<float>> YieldThenWaitAsync(
+        ReadOnlyMemory<float> firstChunk,
+        TaskCompletionSource waiting,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        yield return firstChunk;
+        waiting.TrySetResult();
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+        yield return ReadOnlyMemory<float>.Empty;
     }
 
     [Fact]

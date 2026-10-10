@@ -231,6 +231,8 @@ public sealed class DiarizationStream : IDisposable
     private bool _finished;
     private int? _sampleRate;
     private readonly IncrementalFrameCursor _frameCursor = new();
+    private bool _asyncOperationActive;
+    private bool _faulted;
 
     internal DiarizationStream(StreamHandle handle, int speakerCount, double secondsPerFrame)
     {
@@ -251,6 +253,8 @@ public sealed class DiarizationStream : IDisposable
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
             if (_finished)
                 throw new InvalidOperationException("The stream has already been finished.");
             ValidatePushInput(monoPcm, sampleRate, _sampleRate);
@@ -263,6 +267,130 @@ public sealed class DiarizationStream : IDisposable
                 throw NativeCallException.Create(status);
             _sampleRate ??= sampleRate;
         }
+    }
+
+    /// <summary>
+    /// Pushes asynchronous PCM chunks in order. Native processing runs synchronously on a worker
+    /// thread, one chunk at a time; it is not interruptible once a native push has started.
+    /// </summary>
+    /// <remarks>
+    /// The source receives the cancellation token while being enumerated. Cancellation is observed
+    /// between completed pushes, and an already yielded chunk is processed before cancellation is
+    /// reported. The stream remains open after completion or cancellation. Await this task before
+    /// using or disposing this stream. Do not modify yielded buffers until this task completes.
+    /// </remarks>
+    public Task PushChunksAsync(IAsyncEnumerable<ReadOnlyMemory<float>> chunks, int sampleRate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(chunks);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
+            if (_finished)
+                throw new InvalidOperationException("The stream has already been finished.");
+            ValidatePushInput(ReadOnlySpan<float>.Empty, sampleRate, _sampleRate);
+            cancellationToken.ThrowIfCancellationRequested();
+            // Резервируем поток на всё перечисление, включая ожидание следующего фрагмента.
+            _asyncOperationActive = true;
+        }
+
+        return PushChunksCoreAsync(chunks, sampleRate, cancellationToken);
+    }
+
+    private async Task PushChunksCoreAsync(IAsyncEnumerable<ReadOnlyMemory<float>> chunks,
+        int sampleRate, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ProcessChunksSequentiallyAsync(chunks, cancellationToken,
+                chunk => Task.Run(() => PushAsyncChunk(chunk, sampleRate))).ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_sync)
+                _asyncOperationActive = false;
+        }
+    }
+
+    internal static async Task ProcessChunksSequentiallyAsync(
+        IAsyncEnumerable<ReadOnlyMemory<float>> chunks, CancellationToken cancellationToken,
+        Func<ReadOnlyMemory<float>, Task> processChunk)
+    {
+        ArgumentNullException.ThrowIfNull(chunks);
+        ArgumentNullException.ThrowIfNull(processChunk);
+
+        await using IAsyncEnumerator<ReadOnlyMemory<float>> enumerator =
+            chunks.GetAsyncEnumerator(cancellationToken);
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            bool hasChunk = await enumerator.MoveNextAsync().ConfigureAwait(false);
+            if (!hasChunk)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return;
+            }
+
+            // Уже выданный фрагмент отправляем целиком; отмену проверяем после завершения Push.
+            await processChunk(enumerator.Current).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+    }
+
+    private void PushAsyncChunk(ReadOnlyMemory<float> monoPcm, int sampleRate)
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            if (!_asyncOperationActive)
+                throw new InvalidOperationException("The asynchronous stream operation is no longer active.");
+            EnsureNotFaulted();
+            if (_finished)
+                throw new InvalidOperationException("The stream has already been finished.");
+
+            ReadOnlySpan<float> samples = monoPcm.Span;
+            ValidatePushInput(samples, sampleRate, _sampleRate);
+            if (samples.IsEmpty)
+                return;
+
+            float[] nativeSamples = samples.ToArray();
+            NativeStatus status;
+            try
+            {
+                status = NativeMethods.DiarStreamPushF32(_handle, nativeSamples,
+                    (nuint)nativeSamples.Length, sampleRate);
+            }
+            catch
+            {
+                // Native мог принять часть данных до ошибки, поэтому дальнейшее использование запрещаем.
+                _faulted = true;
+                throw;
+            }
+
+            if (status != NativeStatus.Ok)
+            {
+                // Состояние native stream после ошибки неизвестно: разрешаем только Dispose.
+                _faulted = true;
+                throw NativeCallException.Create(status);
+            }
+            _sampleRate ??= sampleRate;
+        }
+    }
+
+    private void EnsureNoAsyncOperation()
+    {
+        if (_asyncOperationActive)
+            throw new InvalidOperationException("A chunk-processing operation is active on this stream.");
+    }
+
+    private void EnsureNotFaulted()
+    {
+        if (_faulted)
+            throw new InvalidOperationException("An asynchronous native push failed; dispose this stream.");
     }
 
     internal static void ValidatePushInput(ReadOnlySpan<float> monoPcm, int sampleRate, int? currentSampleRate)
@@ -296,6 +424,8 @@ public sealed class DiarizationStream : IDisposable
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
             if (_finished)
                 return;
             NativeStatus status = NativeMethods.DiarStreamFinish(_handle);
@@ -313,6 +443,9 @@ public sealed class DiarizationStream : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
             return GetSnapshotCore(segmentationOptions);
         }
     }
@@ -327,6 +460,8 @@ public sealed class DiarizationStream : IDisposable
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
             return ReadNewFramesCore(_handle, _speakerCount, _secondsPerFrame, _frameCursor);
         }
     }
@@ -445,7 +580,10 @@ public sealed class DiarizationStream : IDisposable
     public void Dispose()
     {
         lock (_sync)
+        {
+            EnsureNoAsyncOperation();
             _handle.Dispose();
+        }
     }
 }
 

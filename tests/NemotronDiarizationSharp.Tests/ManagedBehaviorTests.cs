@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using NemotronDiarizationSharp;
 using NemotronDiarizationSharp.Native;
 using Xunit;
@@ -126,6 +127,183 @@ public sealed class ManagedBehaviorTests
         Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(0, 1, 1, 0.08, []));
         Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(0, 1, 1, 0.08, [float.NaN]));
         Assert.Throws<InvalidOperationException>(() => cursor.CreateBatch(0, long.MaxValue, 1, 0.08, []));
+    }
+
+    [Fact]
+    public async Task AsyncChunkProcessorHandlesEmptySourceAndPreservesOrder()
+    {
+        var processed = new List<float>();
+        await DiarizationStream.ProcessChunksSequentiallyAsync(
+            YieldChunksAsync([]), CancellationToken.None,
+            chunk =>
+            {
+                processed.AddRange(chunk.ToArray());
+                return Task.CompletedTask;
+            });
+        Assert.Empty(processed);
+
+        await DiarizationStream.ProcessChunksSequentiallyAsync(
+            YieldChunksAsync([[1f, 2f], [3f], [4f, 5f]]), CancellationToken.None,
+            chunk =>
+            {
+                processed.AddRange(chunk.ToArray());
+                return Task.CompletedTask;
+            });
+
+        Assert.Equal(new[] { 1f, 2f, 3f, 4f, 5f }, processed);
+
+        await DiarizationStream.ProcessChunksSequentiallyAsync(
+            YieldChunksAsync([[6f]]), CancellationToken.None,
+            chunk =>
+            {
+                processed.AddRange(chunk.ToArray());
+                return Task.CompletedTask;
+            });
+        Assert.Equal(new[] { 1f, 2f, 3f, 4f, 5f, 6f }, processed);
+    }
+
+    [Fact]
+    public async Task AsyncChunkProcessorDoesNotRequestNextChunkUntilCurrentProcessingCompletes()
+    {
+        var firstProcessing = NewSignal();
+        var allowFirstToComplete = NewSignal();
+        var secondRequested = NewSignal();
+        int processed = 0;
+
+        async IAsyncEnumerable<ReadOnlyMemory<float>> Source(
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield return new float[] { 1f };
+            secondRequested.TrySetResult();
+            yield return new float[] { 2f };
+            await Task.CompletedTask;
+        }
+
+        Task operation = DiarizationStream.ProcessChunksSequentiallyAsync(Source(), CancellationToken.None,
+            chunk =>
+            {
+                processed++;
+                if (processed == 1)
+                {
+                    firstProcessing.TrySetResult();
+                    return allowFirstToComplete.Task;
+                }
+                return Task.CompletedTask;
+            });
+
+        await firstProcessing.Task;
+        Assert.False(secondRequested.Task.IsCompleted);
+        Assert.Equal(1, processed);
+        allowFirstToComplete.TrySetResult();
+        await operation;
+        Assert.True(secondRequested.Task.IsCompleted);
+        Assert.Equal(2, processed);
+    }
+
+    [Fact]
+    public async Task AsyncChunkProcessorObservesCancellationWhileWaitingAndBetweenChunks()
+    {
+        using (var alreadyCanceled = new CancellationTokenSource())
+        {
+            alreadyCanceled.Cancel();
+            int processedBeforeStart = 0;
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                DiarizationStream.ProcessChunksSequentiallyAsync(YieldChunksAsync([[0f]]), alreadyCanceled.Token,
+                    _ =>
+                    {
+                        processedBeforeStart++;
+                        return Task.CompletedTask;
+                    }));
+            Assert.Equal(0, processedBeforeStart);
+        }
+
+        var waiting = NewSignal();
+        using (var waitingCancellation = new CancellationTokenSource())
+        {
+            int processed = 0;
+            Task waitingOperation = DiarizationStream.ProcessChunksSequentiallyAsync(
+                WaitForCancellationAsync(waiting), waitingCancellation.Token,
+                _ =>
+                {
+                    processed++;
+                    return Task.CompletedTask;
+                });
+
+            await waiting.Task;
+            waitingCancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waitingOperation);
+            Assert.Equal(0, processed);
+        }
+
+        using var betweenChunksCancellation = new CancellationTokenSource();
+        var firstProcessing = NewSignal();
+        var allowFirstToComplete = NewSignal();
+        var processedValues = new List<float>();
+        Task betweenChunksOperation = DiarizationStream.ProcessChunksSequentiallyAsync(
+            YieldChunksAsync([[1f], [2f]]), betweenChunksCancellation.Token,
+            chunk =>
+            {
+                processedValues.Add(chunk.Span[0]);
+                if (processedValues.Count == 1)
+                {
+                    firstProcessing.TrySetResult();
+                    return allowFirstToComplete.Task;
+                }
+                return Task.CompletedTask;
+            });
+
+        await firstProcessing.Task;
+        betweenChunksCancellation.Cancel();
+        allowFirstToComplete.TrySetResult();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => betweenChunksOperation);
+        Assert.Equal(new[] { 1f }, processedValues);
+    }
+
+    [Fact]
+    public async Task AsyncChunkProcessorPropagatesSourceAndProcessingExceptions()
+    {
+        var sourceError = new InvalidOperationException("source failed");
+        async IAsyncEnumerable<ReadOnlyMemory<float>> FaultingSource()
+        {
+            yield return new float[] { 1f };
+            await Task.Yield();
+            throw sourceError;
+        }
+
+        InvalidOperationException observedSourceError = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => DiarizationStream.ProcessChunksSequentiallyAsync(FaultingSource(), CancellationToken.None,
+                _ => Task.CompletedTask));
+        Assert.Same(sourceError, observedSourceError);
+
+        var processingError = new InvalidOperationException("native push failed");
+        InvalidOperationException observedProcessingError = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => DiarizationStream.ProcessChunksSequentiallyAsync(YieldChunksAsync([[1f]]), CancellationToken.None,
+                _ => Task.FromException(processingError)));
+        Assert.Same(processingError, observedProcessingError);
+    }
+
+    private static TaskCompletionSource NewSignal()
+        => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private static async IAsyncEnumerable<ReadOnlyMemory<float>> YieldChunksAsync(
+        IEnumerable<float[]> chunks,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        foreach (float[] chunk in chunks)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Yield();
+            yield return chunk;
+        }
+    }
+
+    private static async IAsyncEnumerable<ReadOnlyMemory<float>> WaitForCancellationAsync(
+        TaskCompletionSource waiting,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        waiting.TrySetResult();
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+        yield return new float[] { 1f };
     }
 
     [Fact]
