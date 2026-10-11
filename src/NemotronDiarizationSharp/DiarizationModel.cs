@@ -14,8 +14,10 @@ public sealed class DiarizationModel : IDisposable
         _handle = handle;
         try
         {
-            int speakerCount = NativeMethods.DiarNumSpeakers(handle);
-            double secondsPerFrame = NativeMethods.DiarSecondsPerFrame(handle);
+            int speakerCount = NativeRuntimeCompatibility.InvokeRequiredEntryPoint(
+                "nemo_speech_diar_num_speakers", () => NativeMethods.DiarNumSpeakers(handle));
+            double secondsPerFrame = NativeRuntimeCompatibility.InvokeRequiredEntryPoint(
+                "nemo_speech_diar_seconds_per_frame", () => NativeMethods.DiarSecondsPerFrame(handle));
             ValidateNativeMetadata(speakerCount, secondsPerFrame);
 
             SpeakerCount = speakerCount;
@@ -77,7 +79,15 @@ public sealed class DiarizationModel : IDisposable
             if (options is not null)
                 options.ApplyNativeOverrides(ref config);
 
-            NativeStatus status = NativeMethods.DiarCreate(in config, out nint model);
+            NativeRuntimeCompatibility.EnsureCompatible();
+
+            (NativeStatus status, nint model) = NativeRuntimeCompatibility.InvokeRequiredEntryPoint(
+                "nemo_speech_diar_create", () =>
+                {
+                    NativeStatus createStatus = NativeMethods.DiarCreate(in config, out nint createdModel);
+                    return (createStatus, createdModel);
+                });
+
             if (status != NativeStatus.Ok)
             {
                 NativeCallException exception = NativeCallException.Create(status);
