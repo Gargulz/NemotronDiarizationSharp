@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\NemotronDiarizationSharp\NemotronDiarizationSharp.csproj" />
+    <ProjectReference Include="..\..\src\NemotronDiarizationSharp.Runtime.Cpu\NemotronDiarizationSharp.Runtime.Cpu.csproj" />
     <Content Include="..\..\src\NemotronDiarizationSharp.Runtime.Cpu\runtimes\win-x64\native\*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\NemotronDiarizationSharp\NemotronDiarizationSharp.csproj" />
+    <ProjectReference Include="..\..\src\NemotronDiarizationSharp.Runtime.Cpu\NemotronDiarizationSharp.Runtime.Cpu.csproj" />
   </ItemGroup>
 </Project>

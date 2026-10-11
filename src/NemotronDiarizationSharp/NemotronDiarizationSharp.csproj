@@ -7,7 +7,4 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\NemotronDiarizationSharp.Runtime.Cpu\NemotronDiarizationSharp.Runtime.Cpu.csproj" />
-  </ItemGroup>
 </Project>
