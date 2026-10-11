@@ -6,6 +6,8 @@ namespace NemotronDiarizationSharp.Native;
 internal static class NativeMethods
 {
     private const string LibraryName = "nemo_speech_asr_c";
+    private static readonly NativeRuntimeSelectionCache RuntimeSelection = new(SelectRuntime);
+    private static readonly Lazy<nint> RuntimeHandle = new(LoadSelectedRuntime, LazyThreadSafetyMode.ExecutionAndPublication);
 
     static NativeMethods()
     {
@@ -77,23 +79,31 @@ internal static class NativeMethods
         if (!string.Equals(libraryName, LibraryName, StringComparison.Ordinal))
             return 0;
 
-        string? configuredDirectory = Environment.GetEnvironmentVariable("NEMOTONDIARIZATIONSHARP_NATIVE_DIR");
-        if (string.IsNullOrWhiteSpace(configuredDirectory))
-            configuredDirectory = Environment.GetEnvironmentVariable("NEMOTONSHARP_NATIVE_DIR");
-        string[] candidates =
-        [
-            Path.Combine(AppContext.BaseDirectory, "nemo_speech_asr_c.dll"),
-            string.IsNullOrWhiteSpace(configuredDirectory) ? string.Empty : Path.Combine(configuredDirectory, "nemo_speech_asr_c.dll")
-        ];
+        return RuntimeHandle.Value;
+    }
 
-        foreach (string candidate in candidates)
+    private static nint LoadSelectedRuntime()
+    {
+        NativeRuntimeSelection selection = RuntimeSelection.Value;
+        if (selection.Source == NativeRuntimeSource.OperatingSystem)
+            return 0;
+
+        if (selection.IsExplicit && OperatingSystem.IsWindows())
         {
-            if (File.Exists(candidate))
-                return NativeLibrary.Load(candidate);
+            DllImportSearchPath explicitSearchPath = DllImportSearchPath.UseDllDirectoryForDependencies |
+                DllImportSearchPath.System32;
+            return NativeLibrary.Load(selection.LibraryPath!, typeof(NativeMethods).Assembly, explicitSearchPath);
         }
 
-        return 0;
+        return NativeLibrary.Load(selection.LibraryPath!);
     }
+
+    private static NativeRuntimeSelection SelectRuntime() => NativeRuntimeSelectionResolver.Select(
+        Environment.GetEnvironmentVariable(NativeRuntimeSelectionResolver.PrimaryEnvironmentVariable),
+        Environment.GetEnvironmentVariable(NativeRuntimeSelectionResolver.LegacyEnvironmentVariable),
+        AppContext.BaseDirectory,
+        Directory.Exists,
+        File.Exists);
 }
 
 internal enum NativeStatus
