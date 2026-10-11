@@ -1,0 +1,54 @@
+name: Managed .NET 10 CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed:
+    name: Managed tests (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up .NET SDK from global.json
+        uses: actions/setup-dotnet@v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Show selected SDK
+        run: dotnet --version
+        timeout-minutes: 2
+
+      - name: Restore solution
+        run: dotnet restore NemotronDiarizationSharp.sln --verbosity minimal
+        timeout-minutes: 10
+
+      - name: Build solution (Release)
+        run: dotnet build NemotronDiarizationSharp.sln --configuration Release --no-restore --verbosity minimal
+        timeout-minutes: 15
+
+      - name: Run CPU-free unit tests
+        run: dotnet test tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj --configuration Release --no-build --no-restore --filter "FullyQualifiedName!~WindowsNativeInferenceTests"
+        timeout-minutes: 5
+
+      - name: Run evaluation tests
+        run: dotnet test tests/NemotronDiarizationSharp.Evaluation.Tests/NemotronDiarizationSharp.Evaluation.Tests.csproj --configuration Release --no-build --no-restore
+        timeout-minutes: 5
+
+      - name: Run ordinary integration tests
+        run: dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj --configuration Release --no-build --no-restore --filter "FullyQualifiedName!~ExplicitNativeIntegrationTests" -- xUnit.Explicit=off
+        timeout-minutes: 5
+
+      - name: Run public API contract tests
+        run: dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj --configuration Release --no-build --no-restore --filter "FullyQualifiedName~PublicApiContractTests" -- xUnit.Explicit=off
+        timeout-minutes: 5
