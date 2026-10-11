@@ -1,0 +1,17 @@
+{
+  "fixtureKind": "synthetic",
+  "scoringProtocol": "pyannote.metrics 4.1 semantics: zero collar, overlap retained, global Hungarian mapping, UEM [0, 180]",
+  "referenceRttm": "SPEAKER rec 1 0.000000 3.000000 <NA> <NA> A <NA> <NA>\nSPEAKER rec 1 1.000000 1.000000 <NA> <NA> B <NA> <NA>\n",
+  "hypothesisRttm": "SPEAKER rec 1 0.000000 2.000000 <NA> <NA> X <NA> <NA>\nSPEAKER rec 1 2.000000 2.000000 <NA> <NA> Y <NA> <NA>\n",
+  "expected": {
+    "der": 0.75,
+    "falseAlarmSpeakerSeconds": 1.0,
+    "missedDetectionSpeakerSeconds": 1.0,
+    "speakerConfusionSpeakerSeconds": 1.0,
+    "totalReferenceSpeakerSeconds": 4.0,
+    "correctlyIdentifiedSpeakerSeconds": 2.0,
+    "referenceSpeakerCount": 2,
+    "hypothesisSpeakerCount": 2,
+    "speakerMapping": { "X": "A" }
+  }
+}
