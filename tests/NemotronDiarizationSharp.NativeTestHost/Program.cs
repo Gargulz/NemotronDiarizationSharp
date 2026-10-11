@@ -86,7 +86,8 @@ static async Task<NativeTestResponse> RunInferenceAsync(
     var options = new DiarizationModelOptions
     {
         Preset = "v3-streaming",
-        GpuDeviceIndex = request.GpuDeviceIndex,
+        // The SDK represents the native CPU sentinel -1 as null, then passes -1 to the C ABI.
+        GpuDeviceIndex = request.Backend == NativeBackend.Cpu ? null : request.GpuDeviceIndex,
         SpeakerCacheFrames = 264,
         FifoFrames = 40,
         ChunkFrames = 340,
@@ -94,37 +95,65 @@ static async Task<NativeTestResponse> RunInferenceAsync(
         UpdatePeriodFrames = 300
     };
 
+    double modelLoadMilliseconds;
+    double streamOpenMilliseconds;
+    double inferenceMilliseconds;
+    string runtimeIdentity;
+    DiarizationSnapshot snapshot;
+    IReadOnlyDictionary<string, string> loadedNativeModules;
     var modelTimer = Stopwatch.StartNew();
-    using var model = DiarizationModel.Load(request.ModelPath, options);
-    modelTimer.Stop();
-    string runtimeIdentity = DiarizationModel.NativeRuntimeVersion;
-
-    var openTimer = Stopwatch.StartNew();
-    using DiarizationStream stream = model.OpenStream();
-    openTimer.Stop();
-
-    long frameCount = checked((long)Math.Round(request.DurationSeconds * request.SampleRate,
-        MidpointRounding.AwayFromZero));
-    int chunkSize = Math.Min(request.SampleRate, 16_384);
-    float[] samples = new float[chunkSize];
-    long processed = 0;
-    var inferenceTimer = Stopwatch.StartNew();
-    using (PcmInputReader input = PcmInputReader.Open(request, audio))
+    using (DiarizationModel model = DiarizationModel.Load(request.ModelPath, options))
     {
-        while (processed < frameCount)
-        {
-            int requested = (int)Math.Min(samples.Length, frameCount - processed);
-            int read = input.ReadSamples(samples, requested);
-            if (read != requested)
-                throw new EndOfStreamException($"Audio ended after {processed + read} of {frameCount} excerpt frames.");
-            stream.Push(samples.AsSpan(0, read), request.SampleRate);
-            processed += read;
-        }
-        stream.Finish();
-    }
-    inferenceTimer.Stop();
+        modelTimer.Stop();
+        runtimeIdentity = DiarizationModel.NativeRuntimeVersion;
+        modelLoadMilliseconds = modelTimer.Elapsed.TotalMilliseconds;
 
-    DiarizationSnapshot snapshot = stream.GetSnapshot();
+        var openTimer = Stopwatch.StartNew();
+        using (DiarizationStream stream = model.OpenStream())
+        {
+            openTimer.Stop();
+            streamOpenMilliseconds = openTimer.Elapsed.TotalMilliseconds;
+
+            long frameCount = checked((long)Math.Round(request.DurationSeconds * request.SampleRate,
+                MidpointRounding.AwayFromZero));
+            int chunkSize = Math.Min(request.SampleRate, 16_384);
+            float[] samples = new float[chunkSize];
+            long processed = 0;
+            var inferenceTimer = Stopwatch.StartNew();
+            using (PcmInputReader input = PcmInputReader.Open(request, audio))
+            {
+                while (processed < frameCount)
+                {
+                    int requested = (int)Math.Min(samples.Length, frameCount - processed);
+                    int read = input.ReadSamples(samples, requested);
+                    if (read != requested)
+                        throw new EndOfStreamException($"Audio ended after {processed + read} of {frameCount} excerpt frames.");
+                    stream.Push(samples.AsSpan(0, read), request.SampleRate);
+                    processed += read;
+                }
+                stream.Finish();
+            }
+            inferenceTimer.Stop();
+            inferenceMilliseconds = inferenceTimer.Elapsed.TotalMilliseconds;
+            snapshot = stream.GetSnapshot();
+            loadedNativeModules = GetLoadedNativeModulePaths(request.NativeFiles);
+        }
+    }
+
+    float probabilityMinimum = float.PositiveInfinity;
+    float probabilityMaximum = float.NegativeInfinity;
+    bool probabilitiesValid = true;
+    for (long frame = snapshot.FirstProbabilityFrame; frame < snapshot.FrameCount; frame++)
+    {
+        for (int speaker = 0; speaker < snapshot.SpeakerCount; speaker++)
+        {
+            float probability = snapshot.GetProbability(frame, speaker);
+            probabilitiesValid &= float.IsFinite(probability) && probability is >= 0 and <= 1;
+            probabilityMinimum = Math.Min(probabilityMinimum, probability);
+            probabilityMaximum = Math.Max(probabilityMaximum, probability);
+        }
+    }
+
     var segments = snapshot.Segments
         .Where(segment => segment.EndTime > segment.StartTime)
         .Select(segment => new RttmSegment(request.RecordingId, "1", segment.StartTime,
@@ -141,15 +170,40 @@ static async Task<NativeTestResponse> RunInferenceAsync(
         Status = "completed",
         NativeRuntimeIdentity = runtimeIdentity,
         NativeRuntimeLoaded = true,
-        ModelLoadMilliseconds = modelTimer.Elapsed.TotalMilliseconds,
-        StreamOpenMilliseconds = openTimer.Elapsed.TotalMilliseconds,
-        InferenceMilliseconds = inferenceTimer.Elapsed.TotalMilliseconds,
+        ModelLoadMilliseconds = modelLoadMilliseconds,
+        StreamOpenMilliseconds = streamOpenMilliseconds,
+        InferenceMilliseconds = inferenceMilliseconds,
         TotalMilliseconds = total.Elapsed.TotalMilliseconds,
         ProcessPriority = priorityName,
         ProcessPriorityApplied = priorityApplied,
         InferenceMeasurementScope = "Stream Push and Finish only; excludes model load, stream open, snapshot retrieval, and RTTM writing.",
         FrameCount = snapshot.FrameCount,
+        FirstProbabilityFrame = snapshot.FirstProbabilityFrame,
         SpeakerCount = snapshot.SpeakerCount,
+        SecondsPerFrame = snapshot.SecondsPerFrame,
+        ProbabilityMinimum = probabilityMinimum,
+        ProbabilityMaximum = probabilityMaximum,
+        AllProbabilitiesFiniteAndBounded = probabilitiesValid,
+        IsFinal = snapshot.IsFinal,
+        NativeResourcesDisposed = true,
+        Segments = snapshot.Segments
+            .Select(static segment => new NativeSegmentResult(segment.StartTime, segment.EndTime, segment.Speaker))
+            .ToArray(),
+        LoadedNativeModules = loadedNativeModules,
         PredictionRttmPath = predictionPath
     };
+}
+
+static IReadOnlyDictionary<string, string> GetLoadedNativeModulePaths(IReadOnlyList<NativeFileHash> manifestFiles)
+{
+    var expectedNames = new HashSet<string>(manifestFiles.Select(static file => file.Name), StringComparer.OrdinalIgnoreCase);
+    expectedNames.UnionWith(["ggml-cuda.dll", "cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"]);
+    var modules = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    foreach (ProcessModule module in Process.GetCurrentProcess().Modules)
+    {
+        if (expectedNames.Contains(module.ModuleName)
+            || string.Equals(module.ModuleName, "nvcuda.dll", StringComparison.OrdinalIgnoreCase))
+            modules[module.ModuleName] = Path.GetFullPath(module.FileName);
+    }
+    return modules;
 }

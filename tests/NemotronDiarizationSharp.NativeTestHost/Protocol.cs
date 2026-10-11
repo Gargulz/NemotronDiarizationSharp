@@ -66,9 +66,21 @@ public sealed record NativeTestResponse
     public bool ProcessPriorityApplied { get; init; }
     public string InferenceMeasurementScope { get; init; } = string.Empty;
     public long FrameCount { get; init; }
+    public long FirstProbabilityFrame { get; init; }
     public int SpeakerCount { get; init; }
+    public double SecondsPerFrame { get; init; }
+    public double ProbabilityMinimum { get; init; }
+    public double ProbabilityMaximum { get; init; }
+    public bool AllProbabilitiesFiniteAndBounded { get; init; }
+    public bool IsFinal { get; init; }
+    public bool NativeResourcesDisposed { get; init; }
+    public IReadOnlyList<NativeSegmentResult> Segments { get; init; } = [];
+    public IReadOnlyDictionary<string, string> LoadedNativeModules { get; init; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     public string PredictionRttmPath { get; init; } = string.Empty;
 }
+
+public sealed record NativeSegmentResult(double StartTime, double EndTime, int Speaker);
 
 public static class ProtocolJson
 {

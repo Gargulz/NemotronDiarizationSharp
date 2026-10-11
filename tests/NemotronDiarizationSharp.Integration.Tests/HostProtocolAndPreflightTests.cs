@@ -177,6 +177,24 @@ public sealed class HostProtocolAndPreflightTests
     }
 
     [Fact]
+    public async Task CpuPreflightAcceptsOnlyTheNativeCpuSentinelWhenAnIndexIsProvided()
+    {
+        using var fixture = SyntheticHostFixture.Create(NativeStageKind.Cpu);
+        fixture.Request = fixture.Request with { GpuDeviceIndex = -1 };
+        ChildProcessResult cpuProcess = await RunHostAsync(fixture.Request, TestContext.Current.CancellationToken);
+        HostResponse cpuResponse = JsonSerializer.Deserialize<HostResponse>(cpuProcess.StandardOutput, TestJson.Options)!;
+        Assert.Equal("ready", cpuResponse.Status);
+        Assert.Equal(-1, cpuResponse.RequestedGpuIndex);
+
+        fixture.Request = fixture.Request with { GpuDeviceIndex = -2 };
+        ChildProcessResult invalidProcess = await RunHostAsync(fixture.Request, TestContext.Current.CancellationToken);
+        HostResponse invalidResponse = JsonSerializer.Deserialize<HostResponse>(invalidProcess.StandardOutput, TestJson.Options)!;
+        Assert.Equal(2, invalidProcess.ExitCode);
+        Assert.Equal("invalid_request", invalidResponse.ErrorCode);
+        Assert.Contains("device index -1", invalidResponse.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task InvalidAudioFormatIsRejectedDuringPreflight()
     {
         using var fixture = SyntheticHostFixture.Create(NativeStageKind.Cpu);
@@ -265,8 +283,20 @@ internal sealed record HostResponse
     public string InferenceMeasurementScope { get; init; } = string.Empty;
     public long FrameCount { get; init; }
     public int SpeakerCount { get; init; }
+    public long FirstProbabilityFrame { get; init; }
+    public double SecondsPerFrame { get; init; }
+    public double ProbabilityMinimum { get; init; }
+    public double ProbabilityMaximum { get; init; }
+    public bool AllProbabilitiesFiniteAndBounded { get; init; }
+    public bool IsFinal { get; init; }
+    public bool NativeResourcesDisposed { get; init; }
+    public IReadOnlyList<HostSegment> Segments { get; init; } = [];
+    public IReadOnlyDictionary<string, string> LoadedNativeModules { get; init; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     public string PredictionRttmPath { get; init; } = string.Empty;
 }
+
+internal sealed record HostSegment(double StartTime, double EndTime, int Speaker);
 
 internal static class HostAssemblyLocator
 {

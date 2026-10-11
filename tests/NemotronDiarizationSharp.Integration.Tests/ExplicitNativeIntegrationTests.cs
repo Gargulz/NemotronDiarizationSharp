@@ -29,8 +29,7 @@ public sealed class ExplicitNativeIntegrationTests
             RequiredPath("NEMOTONDIARIZATIONSHARP_MODEL"),
             RequiredPath("NEMOTONDIARIZATIONSHARP_A3_SMOKE_PCM_F32LE"), "pcmF32Le", 0, 8, "smoke");
         HostResponse response = await ExecuteInferenceAsync(request);
-        AssertCompleted(response, "cpu", expectedGpuIndex: null);
-        Assert.True(response.FrameCount > 0);
+        AssertCompleted(response, "cpu", expectedGpuIndex: -1, request);
     }
 
     [Fact(Explicit = true)]
@@ -42,8 +41,7 @@ public sealed class ExplicitNativeIntegrationTests
             RequiredPath("NEMOTONDIARIZATIONSHARP_MODEL"),
             RequiredPath("NEMOTONDIARIZATIONSHARP_A3_SMOKE_PCM_F32LE"), "pcmF32Le", 0, 8, "smoke");
         HostResponse response = await ExecuteInferenceAsync(request);
-        AssertCompleted(response, "cuda", RequiredGpuIndex());
-        Assert.True(response.FrameCount > 0);
+        AssertCompleted(response, "cuda", RequiredGpuIndex(), request);
     }
 
     [Fact(Explicit = true)]
@@ -71,12 +69,14 @@ public sealed class ExplicitNativeIntegrationTests
         string cudaManifest = RequiredPath("NEMOTONDIARIZATIONSHARP_A3_CUDA_MANIFEST");
 
         // Await sequentially so CUDA never overlaps the CPU child or another GPU case.
-        HostResponse cpu = await ExecuteInferenceAsync(CreateRequest("cpu", NativeMode.Inference,
-            cpuStage, cpuManifest, model, audioPath, "wavPcm16Le", startSeconds, 180, recordingId));
-        AssertCompleted(cpu, "cpu", expectedGpuIndex: null);
-        HostResponse cuda = await ExecuteInferenceAsync(CreateRequest("cuda", NativeMode.Inference,
-            cudaStage, cudaManifest, model, audioPath, "wavPcm16Le", startSeconds, 180, recordingId));
-        AssertCompleted(cuda, "cuda", RequiredGpuIndex());
+        NativeRequest cpuRequest = CreateRequest("cpu", NativeMode.Inference,
+            cpuStage, cpuManifest, model, audioPath, "wavPcm16Le", startSeconds, 180, recordingId);
+        HostResponse cpu = await ExecuteInferenceAsync(cpuRequest);
+        AssertCompleted(cpu, "cpu", expectedGpuIndex: -1, cpuRequest);
+        NativeRequest cudaRequest = CreateRequest("cuda", NativeMode.Inference,
+            cudaStage, cudaManifest, model, audioPath, "wavPcm16Le", startSeconds, 180, recordingId);
+        HostResponse cuda = await ExecuteInferenceAsync(cudaRequest);
+        AssertCompleted(cuda, "cuda", RequiredGpuIndex(), cudaRequest);
 
         IReadOnlyList<RttmSegment> absoluteReference;
         using (var reader = File.OpenText(referencePath))
@@ -117,7 +117,10 @@ public sealed class ExplicitNativeIntegrationTests
             ?? throw new InvalidDataException($"Native runtime manifest is empty: {manifestPath}");
         Assert.Equal(backend, manifest.Backend);
         Assert.Equal("nemo-speech-asr 0.2.0", manifest.NativeRuntimeIdentity);
-        string outputDirectory = Path.Combine(Path.GetTempPath(), "NemotronDiarizationSharp", "A3.1", "runs");
+        VerifyFixtureHash(modelPath, "08456d9e22cd9a323c0364d98375f3746d6e68507ebb705cd46438c534c7a3a1");
+        if (string.Equals(inputFormat, "pcmF32Le", StringComparison.Ordinal))
+            VerifyFixtureHash(audioPath, "23978983c7b52c95f8dabf7639ff64fe9629bd0d094cd208992eeddfbe9a72d0");
+        string outputDirectory = RequiredPath("NEMOTONDIARIZATIONSHARP_A3_OUTPUT_DIRECTORY");
         Directory.CreateDirectory(outputDirectory);
         string requestId = $"{recordingId}-{backend}-{Guid.NewGuid():N}";
         return new NativeRequest
@@ -126,7 +129,7 @@ public sealed class ExplicitNativeIntegrationTests
             RequestId = requestId,
             Mode = mode,
             Backend = backend,
-            GpuDeviceIndex = backend == "cuda" ? RequiredGpuIndex() : null,
+            GpuDeviceIndex = backend == "cuda" ? RequiredGpuIndex() : -1,
             NativeRuntimeIdentity = manifest.NativeRuntimeIdentity,
             NativeStageDirectory = Path.GetFullPath(stage),
             NativeFiles = manifest.Files,
@@ -149,13 +152,26 @@ public sealed class ExplicitNativeIntegrationTests
         await File.WriteAllTextAsync(requestPath, JsonSerializer.Serialize(request, JsonOptions));
         try
         {
+            NativeRequest serializedRequest = JsonSerializer.Deserialize<NativeRequest>(await File.ReadAllTextAsync(requestPath), JsonOptions)
+                ?? throw new InvalidDataException("The child-process request JSON did not deserialize.");
+            Assert.Equal(request.RequestId, serializedRequest.RequestId);
+            Assert.Equal(request.Backend, serializedRequest.Backend);
+            Assert.Equal(request.GpuDeviceIndex, serializedRequest.GpuDeviceIndex);
+            Assert.Equal(request.NativeRuntimeIdentity, serializedRequest.NativeRuntimeIdentity);
+            Assert.Equal(Path.GetFullPath(request.NativeStageDirectory), serializedRequest.NativeStageDirectory);
+            Assert.Equal(Path.GetFullPath(request.ModelPath), serializedRequest.ModelPath);
+            Assert.Equal(Path.GetFullPath(request.AudioPath), serializedRequest.AudioPath);
+            Assert.Equal(Path.GetFullPath(request.PredictionOutputPath), serializedRequest.PredictionOutputPath);
+            Assert.Equal(Path.GetFullPath(request.ResultOutputPath), serializedRequest.ResultOutputPath);
+            Assert.Equal(request.DurationSeconds, serializedRequest.DurationSeconds);
+
             ProcessStartInfo startInfo = ChildProcessRunner.CreateStartInfo(
                 Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
                 [hostAssembly, "--request", requestPath], Path.GetDirectoryName(hostAssembly)!);
             ChildProcessResult process = await new ChildProcessRunner(new SystemChildProcessLauncher())
-                .RunAsync(startInfo, TimeSpan.FromMinutes(20), TestContext.Current.CancellationToken);
+                .RunAsync(startInfo, TimeSpan.FromMinutes(5), TestContext.Current.CancellationToken);
             Assert.True(process.Started, $"Could not launch native test host: {process.ErrorMessage}");
-            Assert.False(process.TimedOut, $"Native test host exceeded its 20 minute timeout. stderr: {process.StandardError}");
+            Assert.False(process.TimedOut, $"Native test host exceeded its five minute timeout. stderr: {process.StandardError}");
             Assert.False(process.Cancelled, "Native test host was cancelled.");
             HostResponse response = JsonSerializer.Deserialize<HostResponse>(process.StandardOutput, TestJson.Options)
                 ?? throw new InvalidDataException($"Native test host returned no JSON result. stderr: {process.StandardError}");
@@ -170,7 +186,7 @@ public sealed class ExplicitNativeIntegrationTests
         }
     }
 
-    private static void AssertCompleted(HostResponse response, string backend, int? expectedGpuIndex)
+    private static void AssertCompleted(HostResponse response, string backend, int? expectedGpuIndex, NativeRequest request)
     {
         Assert.Equal(backend, response.SelectedBackend);
         Assert.Equal(expectedGpuIndex, response.RequestedGpuIndex);
@@ -180,6 +196,74 @@ public sealed class ExplicitNativeIntegrationTests
         Assert.True(response.StreamOpenMilliseconds >= 0);
         Assert.True(response.InferenceMilliseconds > 0);
         Assert.Contains("Stream Push and Finish only", response.InferenceMeasurementScope, StringComparison.Ordinal);
+        Assert.True(response.NativeResourcesDisposed);
+        Assert.True(response.IsFinal);
+        Assert.Equal(0, response.FirstProbabilityFrame);
+        Assert.Equal(8, response.SpeakerCount);
+        Assert.InRange(response.SecondsPerFrame, 0.009, 0.011);
+        if (request.DurationSeconds == 8)
+            Assert.Equal(801, response.FrameCount);
+        else
+            Assert.Equal((long)Math.Round(request.DurationSeconds / response.SecondsPerFrame) + 1, response.FrameCount);
+        Assert.True(response.AllProbabilitiesFiniteAndBounded);
+        Assert.InRange(response.ProbabilityMinimum, 0d, 1d);
+        Assert.InRange(response.ProbabilityMaximum, 0d, 1d);
+        Assert.True(response.ProbabilityMinimum <= response.ProbabilityMaximum);
+        Assert.NotEmpty(response.Segments);
+        double previousStart = -1;
+        foreach (HostSegment segment in response.Segments)
+        {
+            Assert.True(double.IsFinite(segment.StartTime));
+            Assert.True(double.IsFinite(segment.EndTime));
+            Assert.True(segment.StartTime >= previousStart);
+            Assert.True(segment.StartTime >= 0 && segment.EndTime > segment.StartTime);
+            Assert.True(segment.EndTime <= request.DurationSeconds + response.SecondsPerFrame);
+            Assert.InRange(segment.Speaker, 1, response.SpeakerCount);
+            previousStart = segment.StartTime;
+        }
+        if (request.DurationSeconds == 8)
+        {
+            HostSegment[] speakerOne = response.Segments.Where(segment => segment.Speaker == 1).ToArray();
+            Assert.NotEmpty(speakerOne);
+            Assert.InRange(Math.Abs(speakerOne.Min(static segment => segment.StartTime) - 0.85), 0, 0.5);
+            Assert.InRange(Math.Abs(speakerOne.Max(static segment => segment.EndTime) - 3.81), 0, 0.5);
+        }
+
+        string[] requiredModules = backend == "cuda"
+            ? ["nemo_speech_asr_c.dll", "nemo_speech_asr.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll",
+                "ggml-cuda.dll", "cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll", "msvcp140.dll",
+                "vcruntime140.dll", "vcruntime140_1.dll", "vcomp140.dll", "nvcuda.dll"]
+            : ["nemo_speech_asr_c.dll", "nemo_speech_asr.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll"];
+        foreach (string moduleName in requiredModules)
+        {
+            string? modulePath = response.LoadedNativeModules
+                .Where(entry => string.Equals(entry.Key, moduleName, StringComparison.OrdinalIgnoreCase))
+                .Select(static entry => entry.Value)
+                .FirstOrDefault();
+            Assert.NotNull(modulePath);
+            string expectedDirectory = string.Equals(moduleName, "nvcuda.dll", StringComparison.OrdinalIgnoreCase)
+                ? Environment.SystemDirectory
+                : Path.GetFullPath(request.NativeStageDirectory);
+            string expectedPath = Path.GetFullPath(Path.Combine(expectedDirectory, moduleName));
+            Assert.True(string.Equals(expectedPath, Path.GetFullPath(modulePath), StringComparison.OrdinalIgnoreCase),
+                $"Native module {moduleName} loaded from {modulePath}, expected {expectedPath}.");
+        }
+        if (backend == "cpu")
+            Assert.DoesNotContain(response.LoadedNativeModules.Keys, name => name.Contains("cuda", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("cublas", StringComparison.OrdinalIgnoreCase));
+
+        using (var reader = File.OpenText(response.PredictionRttmPath))
+        {
+            IReadOnlyList<RttmSegment> rttm = RttmReader.Read(reader);
+            Assert.NotEmpty(rttm);
+            Assert.All(rttm, segment =>
+            {
+                Assert.True(double.IsFinite(segment.StartSeconds));
+                Assert.True(double.IsFinite(segment.DurationSeconds));
+                Assert.True(segment.StartSeconds >= 0 && segment.DurationSeconds > 0);
+                Assert.True(segment.EndSeconds <= request.DurationSeconds + response.SecondsPerFrame);
+            });
+        }
         Assert.True(File.Exists(response.PredictionRttmPath));
     }
 
@@ -201,6 +285,13 @@ public sealed class ExplicitNativeIntegrationTests
     {
         string? value = Environment.GetEnvironmentVariable("NEMOTONDIARIZATIONSHARP_A3_GPU_DEVICE_INDEX");
         return string.IsNullOrWhiteSpace(value) ? 0 : int.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static void VerifyFixtureHash(string path, string expectedHash)
+    {
+        using FileStream stream = File.OpenRead(path);
+        string actualHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream));
+        Assert.Equal(expectedHash, actualHash, ignoreCase: true);
     }
 
     private enum NativeMode { Preflight, Inference }

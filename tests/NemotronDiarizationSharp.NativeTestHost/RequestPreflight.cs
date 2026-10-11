@@ -34,8 +34,8 @@ internal static class RequestPreflight
             return new(Failure("invalid_request", "Mode must be 'preflight' or 'inference'."), null);
         if (string.IsNullOrWhiteSpace(request.RequestId) || request.RequestId.Any(char.IsWhiteSpace))
             return new(Failure("invalid_request", "RequestId must be a nonempty token without whitespace."), null);
-        if (request.Backend == NativeBackend.Cpu && request.GpuDeviceIndex is not null)
-            return new(Failure("invalid_request", "CPU requests must not specify a GPU device index."), null);
+        if (request.Backend == NativeBackend.Cpu && request.GpuDeviceIndex is not null and not -1)
+            return new(Failure("invalid_request", "CPU requests may specify only device index -1."), null);
         if (request.Backend == NativeBackend.Cuda && request.GpuDeviceIndex is null or < 0)
             return new(Failure("invalid_request", "CUDA requests require a nonnegative GPU device index."), null);
         if (!double.IsFinite(request.DurationSeconds) || request.DurationSeconds <= 0)
