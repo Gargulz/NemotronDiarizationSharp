@@ -1,0 +1,669 @@
+{
+  "schemaVersion": 1,
+  "target": {
+    "os": "windows",
+    "architecture": "x64",
+    "peMachine": "AMD64",
+    "peMachineCode": "0x8664"
+  },
+  "nativeRelease": {
+    "name": "NeMo-Speech.cpp",
+    "version": "0.2.0",
+    "sourceCommit": "6a3ca369370782acee0dd155e34394ba60b920c4",
+    "llamaCppGitlink": "bd4f514db14d87fded667787a7a963bfbaa98e89",
+    "sourceReferenceStatus": "PINNED_REFERENCE_ONLY"
+  },
+  "archive": {
+    "fileName": "nemo-speech-0.2.0-windows-x86_64-cpu.zip",
+    "sizeBytes": 5528418,
+    "sha256": "82C80451086E86194ABA9AF19F800DA77CD66D1C28D993D0EFCEFFD6CDB49BB8",
+    "entryPrefix": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/",
+    "licenseEntryPrefix": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/"
+  },
+  "evidence": {
+    "basis": "A7.1R",
+    "archiveToFileIdentity": "VERIFIED",
+    "comparisonMethod": "FULL_BYTE_COMPARISON_AND_SHA256",
+    "importEvidence": "OBSERVED_PE_IMPORT_TABLES",
+    "nativeBuildProvenance": "UNKNOWN",
+    "toolchainProvenance": "UNKNOWN",
+    "kenlmLinkage": "UNKNOWN",
+    "staticLinkedComponentVersions": "UNKNOWN",
+    "dependencyClosure": "UNKNOWN",
+    "licenseCoverage": "NEEDS_REVIEW",
+    "redistribution": "BLOCKED",
+    "removalAuthorized": false,
+    "limitations": [
+      "Matching the recorded archive establishes present byte identity, not staging history or an authenticated upstream build receipt.",
+      "Pinned source commit and llama.cpp gitlink are source references; their use to build the archived binaries is not independently verified.",
+      "No actual CPU CMake cache, compiler/linker command records, link maps or PDB build receipts were recovered from the authorized evidence location.",
+      "PE linker version 14.44 and Microsoft file version 14.44.35211.0 do not establish the full compiler toolset or exact minimum supported VC runtime.",
+      "KenLM linkage remains UNKNOWN; default-disabled source configuration, a disabled-Flashlight diagnostic and absence of kenlm.dll do not prove exclusion.",
+      "Static imports establish a minimum dependency candidate; dynamic backend and Microsoft runtime loading may require additional dependencies.",
+      "No historical CPU loaded-module inventory or clean-stage validation of the reduced candidate was recovered or performed.",
+      "SentencePiece and darts_clone source diagnostics occur in ASR; exact linked component versions and complete static license coverage remain unresolved.",
+      "All eleven archived license files are preserved, but referenced optional materials and Darts-clone coverage remain unresolved.",
+      "No runtime removal, packaging replacement or legal redistribution clearance is authorized by this manifest."
+    ]
+  },
+  "files": [
+    {
+      "fileName": "concrt140.dll",
+      "sha256": "2405355F0A58067B258F8DF33C327E3A3D716EAAC5A3A5AEBB757842D85BD376",
+      "sizeBytes": 324208,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/concrt140.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "MSVCP140.dll",
+        "VCRUNTIME140_1.dll",
+        "VCRUNTIME140.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [
+        "GetProcAddress",
+        "LoadLibraryExW",
+        "LoadLibraryW"
+      ],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "ggml-base.dll",
+      "sha256": "460AFAA830B390ADD25AC11EE4F247BA2EA99368D337D068A5D84158E737F923",
+      "sizeBytes": 680960,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/ggml-base.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "KERNEL32.dll",
+        "VCOMP140.DLL",
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-utility-l1-1-0.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "ENGINE",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "ggml-cpu.dll",
+      "sha256": "F090417018AB0B87420CB81A56DB9D44AE5E6750ECFE36AA38F58863A0CC52E2",
+      "sizeBytes": 946688,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/ggml-cpu.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "ggml-base.dll",
+        "KERNEL32.dll",
+        "ADVAPI32.dll",
+        "VCOMP140.DLL",
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "ENGINE",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "ggml.dll",
+      "sha256": "25DFA47637EBC9B92D9A34FC72B897800D88877DABB2E95A5B3DF6D43FA99F6F",
+      "sizeBytes": 61952,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/ggml.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "ggml-cpu.dll",
+        "ggml-base.dll",
+        "KERNEL32.dll",
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll"
+      ],
+      "dynamicLoadImports": [
+        "GetProcAddress",
+        "LoadLibraryW"
+      ],
+      "classification": "ENGINE",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "llama.dll",
+      "sha256": "D7EC0724FF6649056BD635CD26D973CA48DCDC8B8A1EB10AFF65C2ABCBA16982",
+      "sizeBytes": 2644480,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/llama.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "ggml.dll",
+        "ggml-base.dll",
+        "KERNEL32.dll",
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-filesystem-l1-1-0.dll"
+      ],
+      "dynamicLoadImports": [
+        "GetProcAddress"
+      ],
+      "classification": "OTHER_ENGINE",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "msvcp140.dll",
+      "sha256": "0F885B509A685D2BBFA652FED26B5FB31D88FBDAB0A978C641D1C7B8AA460AA9",
+      "sizeBytes": 557728,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/msvcp140.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-utility-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [
+        "GetProcAddress"
+      ],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "msvcp140_1.dll",
+      "sha256": "BFAD5AEF4C63A669E3C140655CDFDF395B6C979B400A447BD5DCB65ED8826C3D",
+      "sizeBytes": 35952,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/msvcp140_1.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "msvcp140_2.dll",
+      "sha256": "3EA06F0EE098B4823CB79599DF3780E7F23CCE52C19AAC31D2A0D47EFE33A5E9",
+      "sizeBytes": 280200,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/msvcp140_2.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "msvcp140_atomic_wait.dll",
+      "sha256": "640B2AEFCED484D0368EEA5BDD06ADDD0658A3A70A49256E560D6923B404A479",
+      "sizeBytes": 50304,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/msvcp140_atomic_wait.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "MSVCP140.dll",
+        "VCRUNTIME140_1.dll",
+        "VCRUNTIME140.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll",
+        "ADVAPI32.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [
+        "GetProcAddress",
+        "LoadLibraryExW"
+      ],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "msvcp140_codecvt_ids.dll",
+      "sha256": "F2069A52880EC885EE7F0511186100EB7FADA0411A2B4948FAFEA7735B878A18",
+      "sizeBytes": 31872,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/msvcp140_codecvt_ids.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "VCRUNTIME140.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "nemo_speech_asr.dll",
+      "sha256": "F7129DC212C4D353FB76279E10244FED92C4F7814E80E408C51777A6045F11BE",
+      "sizeBytes": 4192256,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/nemo_speech_asr.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "ggml.dll",
+        "ggml-base.dll",
+        "KERNEL32.dll",
+        "MSVCP140.dll",
+        "dbghelp.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-filesystem-l1-1-0.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "ENGINE",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "nemo_speech_asr_c.dll",
+      "sha256": "9F6390224BF8D9C7A81830507EC9D937277BEB079C9F0BDEE15BD0F25B11A7F5",
+      "sizeBytes": 56320,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/nemo_speech_asr_c.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "nemo_speech_asr.dll",
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "ENGINE",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "nemo_speech_nmt.dll",
+      "sha256": "0440CC36F37614CC5B2586A958A5710BC2449435E7D556A59CF375FA620AD527",
+      "sizeBytes": 248832,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/nemo_speech_nmt.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "llama.dll",
+        "ggml-base.dll",
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "OTHER_ENGINE",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "nemo_speech_nmt_c.dll",
+      "sha256": "4C2A572A75DF878516A0BC8A4F4950ADBBA68D010CBEB23A5985255AFCB95F98",
+      "sizeBytes": 23552,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/nemo_speech_nmt_c.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "nemo_speech_nmt.dll",
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "OTHER_ENGINE",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "nemo_speech_tts.dll",
+      "sha256": "D389A933752735C7444D1EAD2ED5E3C5170088BA91977392BDEE7D9BFFC9EED0",
+      "sizeBytes": 2081792,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/nemo_speech_tts.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": null,
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "ggml.dll",
+        "ggml-cpu.dll",
+        "ggml-base.dll",
+        "KERNEL32.dll",
+        "MSVCP140.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll"
+      ],
+      "dynamicLoadImports": [],
+      "classification": "OTHER_ENGINE",
+      "diarizationDependency": "OUTSIDE_OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "vcomp140.dll",
+      "sha256": "55ABA23CDCD6484FBB06F4155B8CA75ADFCE7A881F10AFD0C49457165E677164",
+      "sizeBytes": 193152,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/vcomp140.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [
+        "GetProcAddress",
+        "LoadLibraryExW"
+      ],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "vcruntime140.dll",
+      "sha256": "D5E4D9A3E835FA679450145D6A7D94E36573A509317111904D9B3712C30D9066",
+      "sizeBytes": 124544,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/vcruntime140.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [
+        "GetProcAddress",
+        "LoadLibraryExW"
+      ],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    },
+    {
+      "fileName": "vcruntime140_1.dll",
+      "sha256": "1F2D41C4AA5DB0BC33EBF7B66D72943A817D7CE6CBE880502A9403823633093F",
+      "sizeBytes": 49792,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/bin/vcruntime140_1.dll",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP",
+      "observedFileVersion": "14.44.35211.0",
+      "observedLinkerVersion": "14.44",
+      "peMachineCode": "0x8664",
+      "imports": [
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "VCRUNTIME140.dll",
+        "KERNEL32.dll"
+      ],
+      "dynamicLoadImports": [
+        "GetProcAddress",
+        "LoadLibraryExW"
+      ],
+      "classification": "MICROSOFT_RUNTIME",
+      "diarizationDependency": "OBSERVED_STATIC_IMPORT_CLOSURE"
+    }
+  ],
+  "licenseFiles": [
+    {
+      "path": "LICENSE",
+      "sha256": "6EB0D1526EF4D4E4F5516C6D679EB148AEFC36D0D2DF9D9CC1FA048FA287963C",
+      "sizeBytes": 12454,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "NOTICE",
+      "sha256": "0F55F591903FE80A07F8B1331029983B2B9F460967CCFB8DBE60F958958BEC25",
+      "sizeBytes": 239,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/NOTICE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "3B3163AB04D77BD137F5823D5DDA5328448F43FE34ED7780EDC8148B62B454C6",
+      "sizeBytes": 10527,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/THIRD_PARTY_NOTICES.md",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "third_party/cpp-httplib/LICENSE",
+      "sha256": "BB546EAE5924D8EE842E0E567E6D533C5824BDEBCCF605F99A5B3429034E6697",
+      "sizeBytes": 1097,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/third_party/cpp-httplib/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "third_party/ggml/LICENSE",
+      "sha256": "BCD8EC749126D45CB06737D0690295D73DF4B6E7E194205BCF91190368F27285",
+      "sizeBytes": 1099,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/third_party/ggml/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "third_party/llama.cpp/LICENSE",
+      "sha256": "BCD8EC749126D45CB06737D0690295D73DF4B6E7E194205BCF91190368F27285",
+      "sizeBytes": 1099,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/third_party/llama.cpp/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "third_party/miniaudio/LICENSE",
+      "sha256": "85C4A6FE037F937D5CD3328E1630EC7C0A3338AC639DCA9A4FACE955BE9A71DB",
+      "sizeBytes": 2645,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/third_party/miniaudio/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "third_party/vcpkg/abseil/LICENSE",
+      "sha256": "C79A7FEA0E3CAC04CD43F20E7B648E5A0FF8FA5344E644B0EE09CA1162B62747",
+      "sizeBytes": 11361,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/third_party/vcpkg/abseil/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "third_party/vcpkg/protobuf/LICENSE",
+      "sha256": "6E5E117324AFD944DCF67F36CF329843BC1A92229A8CD9BB573D7A83130FEA7D",
+      "sizeBytes": 1732,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/third_party/vcpkg/protobuf/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "third_party/vcpkg/sentencepiece/LICENSE",
+      "sha256": "CFC7749B96F63BD31C3C42B5C471BF756814053E847C10F3EB003417BC523D30",
+      "sizeBytes": 11358,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/third_party/vcpkg/sentencepiece/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    },
+    {
+      "path": "third_party/vcpkg/utf8-range/LICENSE",
+      "sha256": "02DE69B64FC36D9E938F418E52723E42F0B2B226D58A9CB3C8DCBDF7059F5074",
+      "sizeBytes": 1091,
+      "archiveEntry": "nemo-speech-0.2.0-windows-x86_64-cpu/share/licenses/nemo-speech/third_party/vcpkg/utf8-range/LICENSE",
+      "provenance": "BYTE_MATCHED_TO_RELEASE_ZIP"
+    }
+  ],
+  "dependencyAnalysis": {
+    "entryDll": "nemo_speech_asr_c.dll",
+    "engineCandidate": [
+      "nemo_speech_asr_c.dll",
+      "nemo_speech_asr.dll",
+      "ggml.dll",
+      "ggml-base.dll",
+      "ggml-cpu.dll"
+    ],
+    "microsoftRuntimeCandidate": [
+      "msvcp140.dll",
+      "vcruntime140.dll",
+      "vcruntime140_1.dll",
+      "vcomp140.dll"
+    ],
+    "candidateStatus": "PROVISIONAL_NOT_RUNTIME_VALIDATED",
+    "loadedModuleEvidence": "NOT_AVAILABLE",
+    "potentialDynamicDependencies": [
+      {
+        "fileName": "ggml.dll",
+        "evidence": [
+          "LoadLibraryW",
+          "GetProcAddress",
+          "ggml_backend_load",
+          "ggml_backend_load_all",
+          "ggml_backend_load_all_from_path"
+        ],
+        "status": "UNKNOWN"
+      },
+      {
+        "fileName": "MICROSOFT_RUNTIME",
+        "evidence": [
+          "Several runtime DLLs import LoadLibraryExW and GetProcAddress."
+        ],
+        "status": "UNKNOWN"
+      }
+    ]
+  },
+  "externalRuntimePrerequisites": [
+    {
+      "id": "msvc-v14-x64",
+      "status": "PROPOSED",
+      "deploymentStrategy": "CENTRAL_VISUAL_CPP_REDISTRIBUTABLE_PREREQUISITE",
+      "architecture": "x64",
+      "importedDlls": [
+        "msvcp140.dll",
+        "vcruntime140.dll",
+        "vcruntime140_1.dll",
+        "vcomp140.dll"
+      ],
+      "observedBundledFileVersion": "14.44.35211.0",
+      "minimumVersion": null,
+      "minimumVersionStatus": "UNKNOWN",
+      "redistributionRights": "NEEDS_REVIEW"
+    },
+    {
+      "id": "windows-system-libraries",
+      "status": "OBSERVED_IMPORTS",
+      "importFamilies": [
+        "KERNEL32.dll",
+        "ADVAPI32.dll",
+        "dbghelp.dll",
+        "api-ms-win-crt-*"
+      ],
+      "deploymentStrategy": "OPERATING_SYSTEM_COMPONENTS"
+    }
+  ],
+  "sourceReferences": [
+    "https://github.com/NVIDIA/NeMo-Speech.cpp/tree/6a3ca369370782acee0dd155e34394ba60b920c4",
+    "https://github.com/ggml-org/llama.cpp/tree/bd4f514db14d87fded667787a7a963bfbaa98e89",
+    "https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files",
+    "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist"
+  ]
+}
