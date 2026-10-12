@@ -10,8 +10,29 @@
     <Description>Windows x64 CPU runtime assets for NVIDIA NeMo-Speech.cpp v0.2.0, used by the independent NemotronDiarizationSharp wrapper.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <None Remove="runtimes\win-x64\native\*.dll" />
-    <Content Include="runtimes\win-x64\native\*.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Remove="runtimes\win-x64\native\concrt140.dll" />
+    <None Remove="runtimes\win-x64\native\ggml-base.dll" />
+    <None Remove="runtimes\win-x64\native\ggml-cpu.dll" />
+    <None Remove="runtimes\win-x64\native\ggml.dll" />
+    <None Remove="runtimes\win-x64\native\llama.dll" />
+    <None Remove="runtimes\win-x64\native\msvcp140.dll" />
+    <None Remove="runtimes\win-x64\native\msvcp140_1.dll" />
+    <None Remove="runtimes\win-x64\native\msvcp140_2.dll" />
+    <None Remove="runtimes\win-x64\native\msvcp140_atomic_wait.dll" />
+    <None Remove="runtimes\win-x64\native\msvcp140_codecvt_ids.dll" />
+    <None Remove="runtimes\win-x64\native\nemo_speech_asr.dll" />
+    <None Remove="runtimes\win-x64\native\nemo_speech_asr_c.dll" />
+    <None Remove="runtimes\win-x64\native\nemo_speech_nmt.dll" />
+    <None Remove="runtimes\win-x64\native\nemo_speech_nmt_c.dll" />
+    <None Remove="runtimes\win-x64\native\nemo_speech_tts.dll" />
+    <None Remove="runtimes\win-x64\native\vcomp140.dll" />
+    <None Remove="runtimes\win-x64\native\vcruntime140.dll" />
+    <None Remove="runtimes\win-x64\native\vcruntime140_1.dll" />
+    <Content Include="runtimes\win-x64\native\nemo_speech_asr_c.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="runtimes\win-x64\native\nemo_speech_asr.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="runtimes\win-x64\native\ggml.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="runtimes\win-x64\native\ggml-base.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="runtimes\win-x64\native\ggml-cpu.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="licenses\**\*" Pack="true" PackagePath="licenses\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

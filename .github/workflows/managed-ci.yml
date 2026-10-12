@@ -29,6 +29,9 @@ jobs:
         run: dotnet --version
         timeout-minutes: 2
 
+      - name: Verify CPU runtime native allowlist
+        run: ./.github/scripts/Verify-CpuRuntimeAllowlist.ps1 -Mode Metadata
+
       - name: Restore solution
         run: dotnet restore NemotronDiarizationSharp.sln --verbosity minimal
         timeout-minutes: 10
