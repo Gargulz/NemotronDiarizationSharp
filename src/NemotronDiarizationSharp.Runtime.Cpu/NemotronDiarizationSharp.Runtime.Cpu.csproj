@@ -8,6 +8,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>NemotronDiarizationSharp.Runtime.Cpu</PackageId>
     <Description>Windows x64 CPU runtime assets for NVIDIA NeMo-Speech.cpp v0.2.0, used by the independent NemotronDiarizationSharp wrapper.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="runtimes\win-x64\native\concrt140.dll" />
@@ -33,6 +34,7 @@
     <Content Include="runtimes\win-x64\native\ggml.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="runtimes\win-x64\native\ggml-base.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="runtimes\win-x64\native\ggml-cpu.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="licenses\**\*" Pack="true" PackagePath="licenses\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Update="licenses\**\*" Pack="true" PackagePath="" />
+    <None Update="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
