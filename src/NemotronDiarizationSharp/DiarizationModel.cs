@@ -56,6 +56,7 @@ public sealed class DiarizationModel : IDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
         int gpuDeviceIndex = options?.GetNativeGpuDeviceIndex() ?? -1;
+        options?.ValidateGeometryArithmetic();
         string fullPath = Path.GetFullPath(modelPath);
         if (!File.Exists(fullPath))
             throw new FileNotFoundException("The diarization model file was not found.", fullPath);
