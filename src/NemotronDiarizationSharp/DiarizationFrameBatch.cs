@@ -28,6 +28,37 @@ public sealed class DiarizationFrameBatch
     /// <summary>Read-only frame-major values: frame 0 speakers, then frame 1 speakers, and so on.</summary>
     public IReadOnlyList<float> Probabilities { get; }
 
+    /// <summary>Creates an owned batch from frame-major probabilities.</summary>
+    public static DiarizationFrameBatch FromProbabilities(long firstFrameIndex, int speakerCount,
+        double secondsPerFrame, ReadOnlySpan<float> probabilities)
+    {
+        ValidateMetadata(firstFrameIndex, speakerCount, secondsPerFrame);
+        if (probabilities.Length % speakerCount != 0)
+            throw new ArgumentException("The probability count must be divisible by the speaker count.", nameof(probabilities));
+        int frameCount = probabilities.Length / speakerCount;
+        _ = checked(firstFrameIndex + frameCount);
+        var owned = probabilities.ToArray();
+        ValidateProbabilities(owned);
+        return new DiarizationFrameBatch(firstFrameIndex, frameCount, speakerCount, secondsPerFrame, owned);
+    }
+
+    internal static void ValidateMetadata(long firstFrameIndex, int speakerCount, double secondsPerFrame)
+    {
+        if (firstFrameIndex < 0)
+            throw new ArgumentOutOfRangeException(nameof(firstFrameIndex));
+        if (speakerCount <= 0 || speakerCount > Array.MaxLength)
+            throw new ArgumentOutOfRangeException(nameof(speakerCount));
+        if (!double.IsFinite(secondsPerFrame) || secondsPerFrame <= 0)
+            throw new ArgumentOutOfRangeException(nameof(secondsPerFrame));
+    }
+
+    internal static void ValidateProbabilities(ReadOnlySpan<float> probabilities)
+    {
+        foreach (float probability in probabilities)
+            if (!float.IsFinite(probability) || probability is < 0 or > 1)
+                throw new ArgumentException("Probabilities must be finite values in [0, 1].", nameof(probabilities));
+    }
+
     /// <summary>Gets a probability by absolute frame index and zero-based speaker index.</summary>
     public float GetProbability(long frameIndex, int speakerIndex)
     {

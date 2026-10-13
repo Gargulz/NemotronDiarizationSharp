@@ -57,4 +57,9 @@ public sealed class DiarizationSnapshot
             throw new InvalidOperationException("The frame timestamp exceeds the supported numeric range.");
         return timestamp;
     }
+
+    /// <summary>Returns an owned frame batch containing this snapshot's retained probability window.</summary>
+    public DiarizationFrameBatch ToFrameBatch()
+        => DiarizationFrameBatch.FromProbabilities(FirstProbabilityFrame, SpeakerCount, SecondsPerFrame,
+            _probabilities);
 }

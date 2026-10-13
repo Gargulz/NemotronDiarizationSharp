@@ -1,4 +1,5 @@
 using NemotronDiarizationSharp.Native;
+using System.Runtime.CompilerServices;
 
 namespace NemotronDiarizationSharp;
 
@@ -11,9 +12,14 @@ public sealed class DiarizationStream : IDisposable
     private readonly Func<StreamHandle, float[], nuint, int, NativeStatus> _pushNative;
     private readonly Func<StreamHandle, NativeStatus> _finishNative;
     private readonly Func<NativeStatus, Exception> _nativeErrorFactory;
+    private readonly Func<StreamHandle, long> _frameCountReader;
+    private readonly Func<StreamHandle, long> _retainedStartReader;
+    private readonly Func<StreamHandle, float[], nuint, NativeStatus> _probabilityReader;
+    private readonly Func<StreamHandle, DiarizationSegment[]> _resultSegmentReader;
     private bool _finished;
     private int? _sampleRate;
     private readonly IncrementalFrameCursor _frameCursor = new();
+    private readonly ResultUpdateCursor _resultCursor = new();
     private bool _asyncOperationActive;
     private bool _faulted;
 
@@ -27,6 +33,20 @@ public sealed class DiarizationStream : IDisposable
         Func<StreamHandle, float[], nuint, int, NativeStatus> pushNative,
         Func<StreamHandle, NativeStatus> finishNative,
         Func<NativeStatus, Exception> nativeErrorFactory)
+        : this(handle, speakerCount, secondsPerFrame, pushNative, finishNative, nativeErrorFactory,
+            NativeMethods.DiarFrameCount, NativeMethods.DiarFrameProbsStart, NativeMethods.DiarFrameProbs,
+            stream => ReadResultSegments(stream, speakerCount, nativeErrorFactory))
+    {
+    }
+
+    internal DiarizationStream(StreamHandle handle, int speakerCount, double secondsPerFrame,
+        Func<StreamHandle, float[], nuint, int, NativeStatus> pushNative,
+        Func<StreamHandle, NativeStatus> finishNative,
+        Func<NativeStatus, Exception> nativeErrorFactory,
+        Func<StreamHandle, long> frameCountReader,
+        Func<StreamHandle, long> retainedStartReader,
+        Func<StreamHandle, float[], nuint, NativeStatus> probabilityReader,
+        Func<StreamHandle, DiarizationSegment[]> resultSegmentReader)
     {
         _handle = handle ?? throw new ArgumentNullException(nameof(handle));
         _speakerCount = speakerCount;
@@ -34,6 +54,10 @@ public sealed class DiarizationStream : IDisposable
         _pushNative = pushNative ?? throw new ArgumentNullException(nameof(pushNative));
         _finishNative = finishNative ?? throw new ArgumentNullException(nameof(finishNative));
         _nativeErrorFactory = nativeErrorFactory ?? throw new ArgumentNullException(nameof(nativeErrorFactory));
+        _frameCountReader = frameCountReader ?? throw new ArgumentNullException(nameof(frameCountReader));
+        _retainedStartReader = retainedStartReader ?? throw new ArgumentNullException(nameof(retainedStartReader));
+        _probabilityReader = probabilityReader ?? throw new ArgumentNullException(nameof(probabilityReader));
+        _resultSegmentReader = resultSegmentReader ?? throw new ArgumentNullException(nameof(resultSegmentReader));
     }
 
     /// <summary>
@@ -92,6 +116,77 @@ public sealed class DiarizationStream : IDisposable
         }
 
         return PushChunksCoreAsync(chunks, sampleRate, cancellationToken);
+    }
+
+    /// <summary>
+    /// Processes PCM chunks in order and yields the new or revised results after each chunk,
+    /// followed by one final result after the source completes.
+    /// </summary>
+    /// <remarks>
+    /// Processing is pull-based: the next chunk is not requested until the consumer asks for the
+    /// next result. The stream is reserved for the lifetime of the enumeration. An acquired chunk
+    /// completes processing before cancellation is observed. Early enumeration termination leaves
+    /// the stream open and does not call Finish.
+    /// </remarks>
+    public async IAsyncEnumerable<DiarizationResultUpdate> ProcessStreamAsync(
+        IAsyncEnumerable<ReadOnlyMemory<float>> chunks, int sampleRate,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(chunks);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
+            if (_finished)
+                throw new InvalidOperationException("The stream has already been finished.");
+            ValidatePushInput(ReadOnlySpan<float>.Empty, sampleRate, _sampleRate);
+            cancellationToken.ThrowIfCancellationRequested();
+            _asyncOperationActive = true;
+        }
+
+        IAsyncEnumerator<ReadOnlyMemory<float>>? enumerator = null;
+        try
+        {
+            enumerator = chunks.GetAsyncEnumerator(cancellationToken);
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                bool hasChunk = await enumerator.MoveNextAsync().ConfigureAwait(false);
+                if (!hasChunk)
+                    break;
+
+                // Once Current has been acquired, finish its synchronous mutation and result read
+                // without passing cancellation into scheduling or native processing.
+                ReadOnlyMemory<float> chunk = enumerator.Current;
+                DiarizationResultUpdate update = await Task.Run(
+                    () => ProcessAsyncResultChunk(chunk, sampleRate)).ConfigureAwait(false);
+                yield return update;
+            }
+
+            IAsyncEnumerator<ReadOnlyMemory<float>> completedEnumerator = enumerator;
+            enumerator = null;
+            await completedEnumerator.DisposeAsync().ConfigureAwait(false);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            DiarizationResultUpdate finalUpdate = await Task.Run(FinishAndReadAsyncResult).ConfigureAwait(false);
+            yield return finalUpdate;
+        }
+        finally
+        {
+            try
+            {
+                if (enumerator is not null)
+                    await enumerator.DisposeAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                lock (_sync)
+                    _asyncOperationActive = false;
+            }
+        }
     }
 
     private async Task PushChunksCoreAsync(IAsyncEnumerable<ReadOnlyMemory<float>> chunks,
@@ -155,6 +250,61 @@ public sealed class DiarizationStream : IDisposable
                 (nuint)nativeSamples.Length, sampleRate));
             _sampleRate ??= sampleRate;
         }
+    }
+
+    private DiarizationResultUpdate ProcessAsyncResultChunk(ReadOnlyMemory<float> monoPcm, int sampleRate)
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            if (!_asyncOperationActive)
+                throw new InvalidOperationException("The asynchronous stream operation is no longer active.");
+            EnsureNotFaulted();
+            if (_finished)
+                throw new InvalidOperationException("The stream has already been finished.");
+
+            ReadOnlySpan<float> samples = monoPcm.Span;
+            ValidatePushInput(samples, sampleRate, _sampleRate);
+            if (!samples.IsEmpty)
+            {
+                float[] nativeSamples = samples.ToArray();
+                InvokeNativeMutation(() => _pushNative(_handle, nativeSamples,
+                    (nuint)nativeSamples.Length, sampleRate));
+                _sampleRate ??= sampleRate;
+            }
+
+            return ReadResultUpdatesCore(allowHistoryGap: false);
+        }
+    }
+
+    private DiarizationResultUpdate FinishAndReadAsyncResult()
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            if (!_asyncOperationActive)
+                throw new InvalidOperationException("The asynchronous stream operation is no longer active.");
+            EnsureNotFaulted();
+            if (!_finished)
+            {
+                InvokeNativeMutation(() => _finishNative(_handle));
+                _finished = true;
+            }
+
+            return ReadResultUpdatesCore(allowHistoryGap: false);
+        }
+    }
+
+    private DiarizationResultUpdate ReadResultUpdatesCore(bool allowHistoryGap)
+    {
+        long frameCount = _frameCountReader(_handle);
+        long firstRetainedFrame = _retainedStartReader(_handle);
+        return _resultCursor.Read(firstRetainedFrame, frameCount, _speakerCount, _secondsPerFrame,
+            _finished,
+            allowHistoryGap,
+            (buffer, floatCount) => _probabilityReader(_handle, buffer, (nuint)floatCount),
+            () => _resultSegmentReader(_handle),
+            _nativeErrorFactory);
     }
 
     private void InvokeNativeMutation(Func<NativeStatus> operation)
@@ -253,8 +403,52 @@ public sealed class DiarizationStream : IDisposable
             ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
             EnsureNoAsyncOperation();
             EnsureNotFaulted();
-            return ReadNewFramesCore(_handle, _speakerCount, _secondsPerFrame, _frameCursor);
+            return ReadNewFramesCore(_handle, _speakerCount, _secondsPerFrame, _frameCursor,
+                _frameCountReader, _retainedStartReader, _probabilityReader);
         }
+    }
+
+    /// <summary>Reads owned new and revised probability batches and the latest segment list.</summary>
+    /// <param name="allowHistoryGap">When true, accepts and reports frames lost to native history compaction.</param>
+    public DiarizationResultUpdate ReadResultUpdates(bool allowHistoryGap = false)
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
+
+            return ReadResultUpdatesCore(allowHistoryGap);
+        }
+    }
+
+    private static DiarizationSegment[] ReadResultSegments(StreamHandle handle, int speakerCount,
+        Func<NativeStatus, Exception> nativeErrorFactory)
+    {
+        NativeStatus countStatus = NativeMethods.DiarSegments(handle, 0, null, 0, out nuint segmentCount);
+        if (countStatus != NativeStatus.Ok)
+            throw nativeErrorFactory(countStatus);
+        if (segmentCount > (nuint)Array.MaxLength)
+            throw new InvalidOperationException("The native library returned too many segments.");
+
+        var nativeSegments = new NativeSegment[(int)segmentCount];
+        if (nativeSegments.Length > 0)
+        {
+            NativeStatus readStatus = NativeMethods.DiarSegments(handle, 0, nativeSegments,
+                (nuint)nativeSegments.Length, out nuint actualCount);
+            if (readStatus != NativeStatus.Ok)
+                throw nativeErrorFactory(readStatus);
+            if (actualCount != (nuint)nativeSegments.Length)
+                throw new InvalidOperationException("The native library returned an inconsistent segment count.");
+        }
+
+        var segments = new DiarizationSegment[nativeSegments.Length];
+        for (int index = 0; index < nativeSegments.Length; index++)
+        {
+            NativeSegment segment = nativeSegments[index];
+            segments[index] = new DiarizationSegment(segment.StartTime, segment.EndTime, segment.Speaker);
+        }
+        return segments;
     }
 
     private DiarizationSnapshot GetSnapshotCore(DiarizationSegmentationOptions? segmentationOptions)
@@ -265,11 +459,14 @@ public sealed class DiarizationStream : IDisposable
     }
 
     private static DiarizationFrameBatch ReadNewFramesCore(StreamHandle handle, int speakerCount,
-        double secondsPerFrame, IncrementalFrameCursor cursor)
+        double secondsPerFrame, IncrementalFrameCursor cursor,
+        Func<StreamHandle, long> frameCountReader,
+        Func<StreamHandle, long> retainedStartReader,
+        Func<StreamHandle, float[], nuint, NativeStatus> probabilityReader)
     {
         ObjectDisposedException.ThrowIf(handle.IsClosed, handle);
-        long frameCount = NativeMethods.DiarFrameCount(handle);
-        long firstFrame = NativeMethods.DiarFrameProbsStart(handle);
+        long frameCount = frameCountReader(handle);
+        long firstFrame = retainedStartReader(handle);
         if (frameCount < 0 || firstFrame < 0 || firstFrame > frameCount)
             throw new InvalidOperationException("The native library returned invalid frame bounds.");
         if (speakerCount <= 0 || !double.IsFinite(secondsPerFrame) || secondsPerFrame <= 0)
@@ -284,7 +481,7 @@ public sealed class DiarizationStream : IDisposable
         float[] retainedProbabilities = new float[floatCount];
         if (retainedProbabilities.Length > 0)
         {
-            NativeStatus status = NativeMethods.DiarFrameProbs(handle, retainedProbabilities,
+            NativeStatus status = probabilityReader(handle, retainedProbabilities,
                 (nuint)retainedProbabilities.Length);
             if (status != NativeStatus.Ok)
                 throw NativeCallException.Create(status);

@@ -62,6 +62,34 @@ public sealed class DocumentationExamplesTests
         Assert.Equal(normalized, documented);
     }
 
+    [Theory]
+    [InlineData("README.md", "revision-polling")]
+    [InlineData("README.ru.md", "revision-polling")]
+    [InlineData("README.md", "synthetic-postprocessing")]
+    [InlineData("README.ru.md", "synthetic-postprocessing")]
+    [InlineData("README.md", "async-results")]
+    [InlineData("README.ru.md", "async-results")]
+    public void RevisionAwareReadmeExamplesMatchTheNormallyCompiledMethods(string readme, string example)
+    {
+        string root = FindRepositoryRoot();
+        string document = File.ReadAllText(Path.Combine(root, readme)).Replace("\r\n", "\n");
+        string source = File.ReadAllText(Path.Combine(root, "tests", "NemotronDiarizationSharp.Tests",
+            "DocumentationExamplesTests.cs")).Replace("\r\n", "\n");
+        string documented = ExtractBetween(document,
+            "<!-- sdk-example: " + example + " -->\n```csharp\n", "\n```");
+        string compiled = ExtractBetween(source, "// sdk-example: " + example + "\n", "    // sdk-example-end");
+        string normalized = string.Join("\n", compiled.TrimEnd('\n').Split('\n')
+            .Select(line => line.StartsWith("    ", StringComparison.Ordinal) ? line[4..] : line));
+        Assert.Equal(normalized, documented);
+    }
+
+    [Fact]
+    public void DocumentedSyntheticPostprocessingExampleRunsWithoutNativeInference()
+    {
+        Assert.Equal("SPEAKER synthetic 1 0 3 <NA> <NA> speaker_1 <NA> <NA>" + Environment.NewLine,
+            CreateSyntheticRttm());
+    }
+
     private static string FindRepositoryRoot()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
@@ -135,6 +163,78 @@ public sealed class DocumentationExamplesTests
         DiarizationConfiguration configuration = CreateConfiguration();
         using var model = DiarizationModel.Load(modelPath, configuration.ModelOptions);
         return model.ProcessOffline(samples, sampleRate, configuration.SegmentationOptions);
+    }
+    // sdk-example-end
+
+    // sdk-example: revision-polling
+    static (DiarizationResultUpdate Update, bool IsIncomplete) PollRevisionAwareUpdate(DiarizationStream stream)
+    {
+        try
+        {
+            return (stream.ReadResultUpdates(), false);
+        }
+        catch (DiarizationFrameHistoryGapException)
+        {
+            DiarizationResultUpdate recovered = stream.ReadResultUpdates(allowHistoryGap: true);
+            return (recovered, recovered.HistoryGap.HasValue);
+        }
+    }
+
+    static void DisplayLatestResult(DiarizationStream stream)
+    {
+        (DiarizationResultUpdate update, bool incomplete) = PollRevisionAwareUpdate(stream);
+        Console.WriteLine($"Update {update.Sequence}, frames [{update.FirstRetainedFrame}, {update.FrameCount}), final={update.IsFinal}");
+        if (update.HistoryGap is { } gap)
+            Console.WriteLine($"Missing frames [{gap.StartFrame}, {gap.EndFrameExclusive})");
+        foreach (DiarizationFrameBatch revision in update.RevisedFrames)
+            Console.WriteLine($"Revised [{revision.FirstFrameIndex}, {revision.FirstFrameIndex + revision.FrameCount})");
+        Console.WriteLine(incomplete ? "Probability history is incomplete after a reported gap." : "No unread history gap.");
+        IReadOnlyList<DiarizationSegment> latestSegments = update.Segments;
+        Console.WriteLine($"Latest replacement segment count: {latestSegments.Count}");
+    }
+    // sdk-example-end
+
+    // sdk-example: synthetic-postprocessing
+    static string CreateSyntheticRttm()
+    {
+        var history = new DiarizationProbabilityHistory(maxRetainedFrames: null);
+        history.Append(DiarizationFrameBatch.FromProbabilities(0, 1, 1.0, [0.8f, 0.1f]));
+        history.Append(DiarizationFrameBatch.FromProbabilities(2, 1, 1.0, [0.8f]));
+
+        var options = new DiarizationPostprocessingOptions
+        {
+            Onset = 0.5f,
+            Offset = 0.5f,
+            PadOffsetSeconds = 0.5,
+            MinGapSeconds = 0.5,
+            MinDurationSeconds = 0
+        };
+        IReadOnlyList<DiarizationSegment> segments = DiarizationPostprocessor.Segment(history.GetFrames(), options);
+        using var writer = new StringWriter(System.Globalization.CultureInfo.InvariantCulture);
+        DiarizationPostprocessor.WriteRttm(writer, segments, recordingId: "synthetic");
+        return writer.ToString();
+    }
+    // sdk-example-end
+
+    // sdk-example: async-results
+    static async Task<IReadOnlyList<DiarizationSegment>> ProcessAsyncResults(
+        DiarizationStream stream,
+        IAsyncEnumerable<ReadOnlyMemory<float>> monoPcmChunks,
+        int sampleRate,
+        CancellationToken cancellationToken)
+    {
+        var history = new DiarizationProbabilityHistory(maxRetainedFrames: 12_000);
+        await foreach (DiarizationResultUpdate update in
+            stream.ProcessStreamAsync(monoPcmChunks, sampleRate, cancellationToken))
+        {
+            history.Apply(update);
+            IReadOnlyList<DiarizationSegment> provisionalSegments = DiarizationPostprocessor.Segment(
+                history.GetFrames(), new DiarizationPostprocessingOptions());
+            if (update.IsFinal)
+                return provisionalSegments;
+        }
+
+        return Array.Empty<DiarizationSegment>();
     }
     // sdk-example-end
 }
