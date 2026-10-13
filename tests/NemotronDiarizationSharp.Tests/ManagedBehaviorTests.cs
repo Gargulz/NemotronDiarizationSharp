@@ -328,6 +328,112 @@ public sealed class ManagedBehaviorTests
     }
 
     [Fact]
+    public async Task ManagedPushValidationFailuresRemainRecoverableAndFinishIsIdempotent()
+    {
+        int pushCalls = 0;
+        int finishCalls = 0;
+        using var stream = CreateStream(
+            (_, _, _, _) => { pushCalls++; return NativeStatus.Ok; },
+            _ => { finishCalls++; return NativeStatus.Ok; });
+
+        Assert.Throws<ArgumentException>(() => stream.Push([float.NaN], 16000));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            stream.PushChunksAsync(YieldChunksAsync([[float.PositiveInfinity]]), 16000));
+        Assert.Equal(0, pushCalls);
+
+        stream.Push([0f], 16000);
+        Assert.Equal(1, pushCalls);
+        stream.Finish();
+        stream.Finish();
+        Assert.Equal(1, finishCalls);
+        Assert.Throws<InvalidOperationException>(() => stream.Push([1f], 16000));
+        Assert.Equal(1, pushCalls);
+    }
+
+    [Fact]
+    public void NativePushStatusFailureFaultsStreamButAllowsDisposal()
+    {
+        int pushCalls = 0;
+        using var stream = CreateStream(
+            (_, _, _, _) => { pushCalls++; return NativeStatus.Runtime; },
+            _ => NativeStatus.Ok);
+
+        Assert.Throws<InvalidOperationException>(() => stream.Push([0f], 16000));
+        Assert.Equal(1, pushCalls);
+        Assert.Throws<InvalidOperationException>(() => stream.Push([1f], 16000));
+        Assert.Throws<InvalidOperationException>(() => stream.Finish());
+        Assert.Throws<InvalidOperationException>(() => stream.GetSnapshot());
+        Assert.Throws<InvalidOperationException>(() => stream.ReadNewFrames());
+        Assert.Equal(1, pushCalls);
+
+        stream.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => stream.Push([1f], 16000));
+    }
+
+    [Fact]
+    public void NativeFinishStatusFailureFaultsStreamAndDoesNotRetryFinish()
+    {
+        int finishCalls = 0;
+        using var stream = CreateStream(
+            (_, _, _, _) => NativeStatus.Ok,
+            _ => { finishCalls++; return NativeStatus.Runtime; });
+
+        Assert.Throws<InvalidOperationException>(() => stream.Finish());
+        Assert.Throws<InvalidOperationException>(() => stream.Finish());
+        Assert.Throws<InvalidOperationException>(() => stream.Push([0f], 16000));
+        Assert.Equal(1, finishCalls);
+    }
+
+    [Fact]
+    public void InteropExceptionDuringFinishFaultsStreamAndDoesNotRetryFinish()
+    {
+        var expected = new EntryPointNotFoundException("simulated native entry-point failure");
+        int finishCalls = 0;
+        using var stream = CreateStream(
+            (_, _, _, _) => NativeStatus.Ok,
+            _ => { finishCalls++; throw expected; });
+
+        EntryPointNotFoundException observed = Assert.Throws<EntryPointNotFoundException>(
+            () => stream.Finish());
+        Assert.Same(expected, observed);
+        Assert.Throws<InvalidOperationException>(() => stream.Finish());
+        Assert.Equal(1, finishCalls);
+    }
+
+    [Fact]
+    public void InteropExceptionDuringPushFaultsStream()
+    {
+        var expected = new EntryPointNotFoundException("simulated native entry-point failure");
+        using var stream = CreateStream(
+            (_, _, _, _) => throw expected,
+            _ => NativeStatus.Ok);
+
+        EntryPointNotFoundException observed = Assert.Throws<EntryPointNotFoundException>(
+            () => stream.Push([0f], 16000));
+        Assert.Same(expected, observed);
+        Assert.Throws<InvalidOperationException>(() => stream.Push([1f], 16000));
+    }
+
+    [Fact]
+    public async Task NativeAsyncPushFailureFaultsStreamAfterOperationCompletes()
+    {
+        using var stream = CreateStream(
+            (_, _, _, _) => NativeStatus.Runtime,
+            _ => NativeStatus.Ok);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            stream.PushChunksAsync(YieldChunksAsync([[1f]]), 16000));
+        Assert.Throws<InvalidOperationException>(() => stream.Finish());
+        Assert.Throws<InvalidOperationException>(() => stream.GetSnapshot());
+    }
+
+    private static DiarizationStream CreateStream(
+        Func<StreamHandle, float[], nuint, int, NativeStatus> push,
+        Func<StreamHandle, NativeStatus> finish)
+        => new(new StreamHandle(0, new ModelHandle(0)), 2, 0.08, push, finish,
+            status => new InvalidOperationException($"simulated native status: {status}"));
+
+    [Fact]
     public void OfflineInputRequiresValidRateAndFiniteSamples()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => DiarizationStream.ValidateOfflineInput([], 0));

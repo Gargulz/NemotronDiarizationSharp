@@ -8,6 +8,9 @@ public sealed class DiarizationStream : IDisposable
     private readonly object _sync = new();
     private readonly int _speakerCount;
     private readonly double _secondsPerFrame;
+    private readonly Func<StreamHandle, float[], nuint, int, NativeStatus> _pushNative;
+    private readonly Func<StreamHandle, NativeStatus> _finishNative;
+    private readonly Func<NativeStatus, Exception> _nativeErrorFactory;
     private bool _finished;
     private int? _sampleRate;
     private readonly IncrementalFrameCursor _frameCursor = new();
@@ -15,10 +18,22 @@ public sealed class DiarizationStream : IDisposable
     private bool _faulted;
 
     internal DiarizationStream(StreamHandle handle, int speakerCount, double secondsPerFrame)
+        : this(handle, speakerCount, secondsPerFrame, NativeMethods.DiarStreamPushF32,
+            NativeMethods.DiarStreamFinish, status => NativeCallException.Create(status))
     {
-        _handle = handle;
+    }
+
+    internal DiarizationStream(StreamHandle handle, int speakerCount, double secondsPerFrame,
+        Func<StreamHandle, float[], nuint, int, NativeStatus> pushNative,
+        Func<StreamHandle, NativeStatus> finishNative,
+        Func<NativeStatus, Exception> nativeErrorFactory)
+    {
+        _handle = handle ?? throw new ArgumentNullException(nameof(handle));
         _speakerCount = speakerCount;
         _secondsPerFrame = secondsPerFrame;
+        _pushNative = pushNative ?? throw new ArgumentNullException(nameof(pushNative));
+        _finishNative = finishNative ?? throw new ArgumentNullException(nameof(finishNative));
+        _nativeErrorFactory = nativeErrorFactory ?? throw new ArgumentNullException(nameof(nativeErrorFactory));
     }
 
     /// <summary>
@@ -42,9 +57,7 @@ public sealed class DiarizationStream : IDisposable
                 return;
 
             float[] samples = monoPcm.ToArray();
-            NativeStatus status = NativeMethods.DiarStreamPushF32(_handle, samples, (nuint)samples.Length, sampleRate);
-            if (status != NativeStatus.Ok)
-                throw NativeCallException.Create(status);
+            InvokeNativeMutation(() => _pushNative(_handle, samples, (nuint)samples.Length, sampleRate));
             _sampleRate ??= sampleRate;
         }
     }
@@ -138,26 +151,26 @@ public sealed class DiarizationStream : IDisposable
                 return;
 
             float[] nativeSamples = samples.ToArray();
-            NativeStatus status;
-            try
-            {
-                status = NativeMethods.DiarStreamPushF32(_handle, nativeSamples,
-                    (nuint)nativeSamples.Length, sampleRate);
-            }
-            catch
-            {
-                // Native мог принять часть данных до ошибки, поэтому дальнейшее использование запрещаем.
-                _faulted = true;
-                throw;
-            }
-
-            if (status != NativeStatus.Ok)
-            {
-                // Состояние native stream после ошибки неизвестно: разрешаем только Dispose.
-                _faulted = true;
-                throw NativeCallException.Create(status);
-            }
+            InvokeNativeMutation(() => _pushNative(_handle, nativeSamples,
+                (nuint)nativeSamples.Length, sampleRate));
             _sampleRate ??= sampleRate;
+        }
+    }
+
+    private void InvokeNativeMutation(Func<NativeStatus> operation)
+    {
+        try
+        {
+            NativeStatus status = operation();
+            if (status != NativeStatus.Ok)
+                throw _nativeErrorFactory(status);
+        }
+        catch
+        {
+            // Push and Finish can fail after partially changing native stream state.
+            // Only Dispose is safe after an unsuccessful native mutating call.
+            _faulted = true;
+            throw;
         }
     }
 
@@ -170,7 +183,7 @@ public sealed class DiarizationStream : IDisposable
     private void EnsureNotFaulted()
     {
         if (_faulted)
-            throw new InvalidOperationException("An asynchronous native push failed; dispose this stream.");
+            throw new InvalidOperationException("A native stream operation failed; dispose this stream.");
     }
 
     internal static void ValidatePushInput(ReadOnlySpan<float> monoPcm, int sampleRate, int? currentSampleRate)
@@ -208,9 +221,7 @@ public sealed class DiarizationStream : IDisposable
             EnsureNotFaulted();
             if (_finished)
                 return;
-            NativeStatus status = NativeMethods.DiarStreamFinish(_handle);
-            if (status != NativeStatus.Ok)
-                throw NativeCallException.Create(status);
+            InvokeNativeMutation(() => _finishNative(_handle));
             _finished = true;
         }
     }
