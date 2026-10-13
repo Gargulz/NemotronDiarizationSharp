@@ -9,6 +9,9 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\examples\NemotronDiarizationSharp.Console\WavePcmReader.cs" Link="Examples\WavePcmReader.cs" />
+    <Compile Include="..\..\examples\NemotronDiarizationSharp.Console\ConsoleOptions.cs" Link="Examples\ConsoleOptions.cs" />
+    <Compile Include="..\..\examples\NemotronDiarizationSharp.Console\ConsoleApplication.cs" Link="Examples\ConsoleApplication.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.1" PrivateAssets="all" />
