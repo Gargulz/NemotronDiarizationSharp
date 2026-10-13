@@ -66,8 +66,9 @@ public sealed class DiarizationModel : IDisposable
         try
         {
             utf8Path = Marshal.StringToCoTaskMemUTF8(fullPath);
-            if (options?.Preset is not null)
-                utf8Preset = Marshal.StringToCoTaskMemUTF8(options.Preset);
+            string? nativePreset = options?.GetNativePreset();
+            if (nativePreset is not null)
+                utf8Preset = Marshal.StringToCoTaskMemUTF8(nativePreset);
 
             var config = new DiarModelConfig
             {

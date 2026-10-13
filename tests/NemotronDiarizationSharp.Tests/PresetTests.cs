@@ -58,4 +58,51 @@ public sealed class PresetTests
         => Assert.Throws<ArgumentOutOfRangeException>(() =>
             new DiarizationModelOptions { Preset = preset, FifoFrames = int.MaxValue }
                 .ValidateGeometryArithmetic());
+
+    [Theory]
+    [InlineData(DiarizationPresets.Nemotron3OfflineStyle, 264, 40, 340, 40, 300)]
+    [InlineData(DiarizationPresets.Nemotron3LowLatency, 264, 264, 9, 4, 222)]
+    [InlineData(DiarizationPresets.Nemotron3VeryLowLatency, 264, 264, 6, 2, 222)]
+    [InlineData(DiarizationPresets.Nemotron3UltraLowLatency, 264, 264, 3, 1, 222)]
+    public void Nemotron3ProfilesMapToV3StreamingAndApplyOfficialGeometry(
+        string profile, int cache, int fifo, int chunk, int rightContext, int updatePeriod)
+    {
+        var options = new DiarizationModelOptions { Preset = profile };
+        Assert.Equal(DiarizationPresets.V3Streaming, options.GetNativePreset());
+        options.ValidateGeometryArithmetic();
+
+        var config = new DiarModelConfig();
+        options.ApplyNativeOverrides(ref config);
+        Assert.Equal(chunk, config.ChunkFrames);
+        Assert.Equal(rightContext, config.RightContextFrames);
+        Assert.Equal(0, config.LeftContextFrames);
+        Assert.Equal(fifo, config.FifoFrames);
+        Assert.Equal(cache, config.SpeakerCacheFrames);
+        Assert.Equal(updatePeriod, config.UpdatePeriodFrames);
+    }
+
+    [Fact]
+    public void Nemotron3ProfileGeometryCanBeCustomizedWithoutChangingTheProfileName()
+    {
+        var options = new DiarizationModelOptions
+        {
+            Preset = DiarizationPresets.Nemotron3LowLatency,
+            ChunkFrames = 12,
+            RightContextFrames = 5,
+            FifoFrames = 200,
+            SpeakerCacheFrames = 300,
+            UpdatePeriodFrames = 100
+        };
+        var config = new DiarModelConfig();
+
+        options.ApplyNativeOverrides(ref config);
+
+        Assert.Equal(DiarizationPresets.Nemotron3LowLatency, options.Preset);
+        Assert.Equal(DiarizationPresets.V3Streaming, options.GetNativePreset());
+        Assert.Equal(12, config.ChunkFrames);
+        Assert.Equal(5, config.RightContextFrames);
+        Assert.Equal(200, config.FifoFrames);
+        Assert.Equal(300, config.SpeakerCacheFrames);
+        Assert.Equal(100, config.UpdatePeriodFrames);
+    }
 }

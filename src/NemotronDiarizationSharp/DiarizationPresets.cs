@@ -15,4 +15,16 @@ public static class DiarizationPresets
 
     /// <summary>Larger V3 streaming geometry; does not select stateless offline inference.</summary>
     public const string V3Offline = "v3-offline";
+
+    /// <summary>NVIDIA Nemotron 3's 30.4-second streaming profile (officially labeled very high latency/offline).</summary>
+    public const string Nemotron3OfflineStyle = "nemotron3-offline-style";
+
+    /// <summary>NVIDIA Nemotron 3's 1.04-second streaming profile.</summary>
+    public const string Nemotron3LowLatency = "nemotron3-low-latency";
+
+    /// <summary>NVIDIA Nemotron 3's 0.64-second streaming profile.</summary>
+    public const string Nemotron3VeryLowLatency = "nemotron3-very-low-latency";
+
+    /// <summary>NVIDIA Nemotron 3's 0.32-second streaming profile.</summary>
+    public const string Nemotron3UltraLowLatency = "nemotron3-ultra-low-latency";
 }

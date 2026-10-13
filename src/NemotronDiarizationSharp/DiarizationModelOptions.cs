@@ -12,7 +12,8 @@ public sealed class DiarizationModelOptions
     public int? GpuDeviceIndex { get; init; }
 
     /// <summary>
-    /// Streaming geometry preset: streaming, offline, v3-streaming, or v3-offline.
+    /// Streaming geometry preset: streaming, offline, v3-streaming, v3-offline, or one of the
+    /// NVIDIA Nemotron 3 profiles on <see cref="DiarizationPresets"/>.
     /// Null leaves preset selection to the native model default. The offline names select
     /// streaming geometry and do not enable stateless full-attention inference.
     /// </summary>
@@ -45,6 +46,9 @@ public sealed class DiarizationModelOptions
         return GpuDeviceIndex ?? -1;
     }
 
+    internal string? GetNativePreset()
+        => TryGetNemotron3Geometry(out _) ? DiarizationPresets.V3Streaming : Preset;
+
     internal void ValidateGeometryArithmetic()
     {
         // The C ABI reads presets as NUL-terminated strings. Match its effective name
@@ -55,6 +59,12 @@ public sealed class DiarizationModelOptions
             int nulIndex = nativePreset.IndexOf('\0');
             if (nulIndex >= 0)
                 nativePreset = nativePreset[..nulIndex];
+        }
+
+        if (TryGetNemotron3Geometry(out var profile))
+        {
+            ValidateEffectiveGeometry(profile.Cache, profile.Fifo, profile.Chunk, profile.Left, profile.Right);
+            return;
         }
 
         switch (nativePreset)
@@ -105,11 +115,37 @@ public sealed class DiarizationModelOptions
 
     internal void ApplyNativeOverrides(ref DiarModelConfig config)
     {
+        if (TryGetNemotron3Geometry(out var profile))
+        {
+            config.ChunkFrames = ChunkFrames is > 0 ? ChunkFrames.Value : profile.Chunk;
+            config.RightContextFrames = RightContextFrames is > 0 ? RightContextFrames.Value : profile.Right;
+            config.LeftContextFrames = LeftContextFrames is >= 0 ? LeftContextFrames.Value : profile.Left;
+            config.FifoFrames = FifoFrames is > 0 ? FifoFrames.Value : profile.Fifo;
+            config.SpeakerCacheFrames = SpeakerCacheFrames is > 0 ? SpeakerCacheFrames.Value : profile.Cache;
+            config.UpdatePeriodFrames = UpdatePeriodFrames is > 0 ? UpdatePeriodFrames.Value : profile.UpdatePeriod;
+            return;
+        }
+
         config.ChunkFrames = ChunkFrames ?? 0;
         config.RightContextFrames = RightContextFrames ?? 0;
         config.LeftContextFrames = LeftContextFrames ?? -1;
         config.FifoFrames = FifoFrames ?? 0;
         config.SpeakerCacheFrames = SpeakerCacheFrames ?? 0;
         config.UpdatePeriodFrames = UpdatePeriodFrames ?? 0;
+    }
+
+    private bool TryGetNemotron3Geometry(out (int Cache, int Fifo, int Chunk, int Left, int Right, int UpdatePeriod) geometry)
+    {
+        // NVIDIA's published values are streaming geometries. The pinned v0.2.0 runtime
+        // accepts v3-streaming; the remaining published values are sent as existing overrides.
+        geometry = Preset switch
+        {
+            DiarizationPresets.Nemotron3OfflineStyle => (264, 40, 340, 0, 40, 300),
+            DiarizationPresets.Nemotron3LowLatency => (264, 264, 9, 0, 4, 222),
+            DiarizationPresets.Nemotron3VeryLowLatency => (264, 264, 6, 0, 2, 222),
+            DiarizationPresets.Nemotron3UltraLowLatency => (264, 264, 3, 0, 1, 222),
+            _ => default
+        };
+        return geometry.Cache != 0;
     }
 }

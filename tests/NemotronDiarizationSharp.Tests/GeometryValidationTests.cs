@@ -128,8 +128,23 @@ public sealed class GeometryValidationTests
     [InlineData("offline")]
     [InlineData("v3-streaming")]
     [InlineData("v3-offline")]
+    [InlineData(DiarizationPresets.Nemotron3OfflineStyle)]
+    [InlineData(DiarizationPresets.Nemotron3LowLatency)]
+    [InlineData(DiarizationPresets.Nemotron3VeryLowLatency)]
+    [InlineData(DiarizationPresets.Nemotron3UltraLowLatency)]
     public void AcceptsKnownPresetsAndUnspecifiedDefaults(string? preset)
         => new DiarizationModelOptions { Preset = preset }.ValidateGeometryArithmetic();
+
+    [Fact]
+    public void Nemotron3ProfileUsesItsEffectiveGeometryForOverflowValidation()
+    {
+        var options = new DiarizationModelOptions
+        {
+            Preset = DiarizationPresets.Nemotron3OfflineStyle,
+            ChunkFrames = int.MaxValue
+        };
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.ValidateGeometryArithmetic());
+    }
 
     [Fact]
     public void MaximumUpdatePeriodIsSafeAndPreservedBecauseNativeClampsIt()

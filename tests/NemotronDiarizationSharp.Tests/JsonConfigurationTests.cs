@@ -70,6 +70,25 @@ public sealed class JsonConfigurationTests
         Assert.Equal(0.5, native.MinDurationSec);
     }
 
+    [Fact]
+    public void ParsesNemotron3ProfileAndAppliesJsonGeometryOverrides()
+    {
+        DiarizationConfiguration configuration = DiarizationConfiguration.Parse("""
+            {"modelOptions":{"preset":"nemotron3-low-latency","chunkFrames":12,"updatePeriodFrames":100}}
+            """);
+
+        Assert.Equal(DiarizationPresets.Nemotron3LowLatency, configuration.ModelOptions.Preset);
+        Assert.Equal(DiarizationPresets.V3Streaming, configuration.ModelOptions.GetNativePreset());
+        var native = new DiarModelConfig();
+        configuration.ModelOptions.ApplyNativeOverrides(ref native);
+        Assert.Equal(12, native.ChunkFrames);
+        Assert.Equal(4, native.RightContextFrames);
+        Assert.Equal(0, native.LeftContextFrames);
+        Assert.Equal(264, native.FifoFrames);
+        Assert.Equal(264, native.SpeakerCacheFrames);
+        Assert.Equal(100, native.UpdatePeriodFrames);
+    }
+
     [Theory]
     [InlineData("{}")]
     [InlineData("{\"modelOptions\":null}")]
