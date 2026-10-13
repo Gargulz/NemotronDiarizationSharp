@@ -33,6 +33,7 @@ cmake-build-*/
 *.nupkg
 *.snupkg
 artifacts/
+/local/
 
 # Downloaded ML model weights (keep source code and audio fixtures)
 models/
