@@ -1,0 +1,23 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/evaluation/">
+    <Project Path="evaluation/NemotronDiarizationSharp.Evaluation/NemotronDiarizationSharp.Evaluation.csproj" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/NemotronDiarizationSharp.Evaluation.Tests/NemotronDiarizationSharp.Evaluation.Tests.csproj" />
+    <Project Path="tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj" />
+    <Project Path="tests/NemotronDiarizationSharp.NativeTestHost/NemotronDiarizationSharp.NativeTestHost.csproj" />
+  </Folder>
+  <Project Path="examples/NemotronDiarizationSharp.Console/NemotronDiarizationSharp.Console.csproj" />
+  <Project Path="src/NemotronDiarizationSharp.Runtime.Cpu/NemotronDiarizationSharp.Runtime.Cpu.csproj" />
+  <Project Path="src/NemotronDiarizationSharp/NemotronDiarizationSharp.csproj" />
+  <Project Path="tests/NemotronDiarizationSharp.CudaPilot/NemotronDiarizationSharp.CudaPilot.csproj" />
+  <Project Path="tests/NemotronDiarizationSharp.LongRun/NemotronDiarizationSharp.LongRun.csproj" />
+  <Project Path="tests/NemotronDiarizationSharp.RealSpeech/NemotronDiarizationSharp.RealSpeech.csproj" />
+  <Project Path="tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj" />
+</Solution>

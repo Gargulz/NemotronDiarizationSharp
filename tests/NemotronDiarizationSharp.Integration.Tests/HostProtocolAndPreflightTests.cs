@@ -303,7 +303,7 @@ internal static class HostAssemblyLocator
     public static string Find()
     {
         DirectoryInfo? current = new(AppContext.BaseDirectory);
-        while (current is not null && !File.Exists(Path.Combine(current.FullName, "NemotronDiarizationSharp.sln")))
+        while (current is not null && !File.Exists(Path.Combine(current.FullName, "NemotronDiarizationSharp.slnx")))
             current = current.Parent;
         if (current is null)
             throw new DirectoryNotFoundException("Could not locate the repository solution from the integration test output directory.");

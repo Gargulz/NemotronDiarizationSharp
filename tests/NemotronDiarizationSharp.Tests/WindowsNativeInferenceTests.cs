@@ -2,7 +2,6 @@ using NemotronDiarizationSharp;
 using NemotronDiarizationSharp.Native;
 using System.Runtime.CompilerServices;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace NemotronDiarizationSharp.Tests;
 
@@ -20,7 +19,7 @@ public sealed class WindowsNativeInferenceTests
         string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
         string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
         if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
-            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
+            Assert.Skip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
 
         float[] samples = ReadPcm(pcmPath);
         using var model = DiarizationModel.Load(modelPath);
@@ -89,7 +88,7 @@ public sealed class WindowsNativeInferenceTests
         string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
         string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
         if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
-            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
+            Assert.Skip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
 
         float[] samples = ReadPcm(pcmPath);
 
@@ -163,7 +162,7 @@ public sealed class WindowsNativeInferenceTests
         string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
         string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
         if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
-            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
+            Assert.Skip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
 
         float[] samples = ReadPcm(pcmPath);
         using var model = DiarizationModel.Load(modelPath);
@@ -251,7 +250,7 @@ public sealed class WindowsNativeInferenceTests
         string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
         string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
         if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
-            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
+            Assert.Skip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
 
         float[] samples = ReadPcm(pcmPath);
         using var model = DiarizationModel.Load(modelPath);
@@ -302,7 +301,7 @@ public sealed class WindowsNativeInferenceTests
         string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
         string? pcmPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_PCM_F32LE", "NEMOTONSHARP_PCM_F32LE");
         if (string.IsNullOrWhiteSpace(modelPath) || string.IsNullOrWhiteSpace(pcmPath))
-            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
+            Assert.Skip("Set NEMOTONDIARIZATIONSHARP_MODEL and NEMOTONDIARIZATIONSHARP_PCM_F32LE to run native CPU inference.");
 
         float[] samples = ReadPcm(pcmPath);
         using var model = DiarizationModel.Load(modelPath);
@@ -380,7 +379,7 @@ public sealed class WindowsNativeInferenceTests
 
         string? modelPath = GetConfiguredPath("NEMOTONDIARIZATIONSHARP_MODEL", "NEMOTONSHARP_MODEL");
         if (string.IsNullOrWhiteSpace(modelPath))
-            throw Xunit.Sdk.SkipException.ForSkip("Set NEMOTONDIARIZATIONSHARP_MODEL to run native CPU inference.");
+            Assert.Skip("Set NEMOTONDIARIZATIONSHARP_MODEL to run native CPU inference.");
 
         using (DiarizationModel model = DiarizationModel.Load(modelPath, new DiarizationModelOptions
         {
@@ -451,6 +450,6 @@ public sealed class WindowsNativeInferenceTests
     private static void RequireWindowsX64()
     {
         if (!OperatingSystem.IsWindows() || !Environment.Is64BitProcess)
-            throw Xunit.Sdk.SkipException.ForSkip("The native integration tests require a Windows x64 process.");
+            Assert.Skip("The native integration tests require a Windows x64 process.");
     }
 }

@@ -33,19 +33,19 @@ jobs:
         run: ./.github/scripts/Verify-CpuRuntimeAllowlist.ps1 -Mode Metadata
 
       - name: Restore solution
-        run: dotnet restore NemotronDiarizationSharp.sln --verbosity minimal
+        run: dotnet restore NemotronDiarizationSharp.slnx --verbosity minimal
         timeout-minutes: 10
 
       - name: Build solution (Release)
-        run: dotnet build NemotronDiarizationSharp.sln --configuration Release --no-restore --verbosity minimal
+        run: dotnet build NemotronDiarizationSharp.slnx --configuration Release --no-restore --verbosity minimal
         timeout-minutes: 15
 
       - name: Compile documented C# examples
         run: ./.github/scripts/Verify-DocumentationExamples.ps1
         timeout-minutes: 10
 
-      - name: Run CPU-free unit tests
-        run: dotnet test tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj --configuration Release --no-build --no-restore --filter "FullyQualifiedName!~WindowsNativeInferenceTests"
+      - name: Run unit tests (native inference skips without inputs)
+        run: dotnet test tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj --configuration Release --no-build --no-restore
         timeout-minutes: 5
 
       - name: Run evaluation tests

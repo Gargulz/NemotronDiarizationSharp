@@ -95,7 +95,7 @@ public sealed class DocumentationExamplesTests
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory is not null)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "NemotronDiarizationSharp.sln")))
+            if (File.Exists(Path.Combine(directory.FullName, "NemotronDiarizationSharp.slnx")))
                 return directory.FullName;
             directory = directory.Parent;
         }

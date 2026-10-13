@@ -177,7 +177,7 @@ public sealed class ExplicitNativeIntegrationTests
         DiarizationErrorRateScore cpuScore = DiarizationErrorRateScorer.Score(clippedReference, cpuPrediction);
         DiarizationErrorRateScore cudaScore = DiarizationErrorRateScorer.Score(clippedReference, cudaPrediction);
 
-        string reportDirectory = Path.Combine(Path.GetTempPath(), "NemotronDiarizationSharp", "A3.1", "reports");
+        string reportDirectory = A3ReportDirectory.Get();
         Directory.CreateDirectory(reportDirectory);
         string reportPath = Path.Combine(reportDirectory, $"{recordingId}-{Guid.NewGuid():N}.json");
         var report = new { recordingId, excerptStartSeconds = startSeconds, excerptDurationSeconds = 180, cpu, cpuScore, cuda, cudaScore };
@@ -770,11 +770,11 @@ public sealed class ExplicitNativeIntegrationTests
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory is not null)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "NemotronDiarizationSharp.sln")))
+            if (File.Exists(Path.Combine(directory.FullName, "NemotronDiarizationSharp.slnx")))
                 return directory.FullName;
             directory = directory.Parent;
         }
-        throw new DirectoryNotFoundException("Could not locate NemotronDiarizationSharp.sln from the integration test output directory.");
+        throw new DirectoryNotFoundException("Could not locate NemotronDiarizationSharp.slnx from the integration test output directory.");
     }
 
     private static void VerifyManifestFile(string path, long expectedSize, string expectedHash, string name)

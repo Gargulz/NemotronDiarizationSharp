@@ -12,7 +12,7 @@ Use concise Conventional Commit subjects, for example `docs: clarify verified ru
 
 Open a pull request with the motivation, scope, relevant design decisions, and user-visible impact. Link related issues, call out compatibility or licensing implications, and identify any behavior that remains unverified. Changes require maintainer review before merging.
 
-For code contributions, run the relevant checks and include the exact commands and results. The current verification commands are `dotnet build NemotronDiarizationSharp.sln -c Release` and `dotnet test NemotronDiarizationSharp.sln -c Release`. Do not claim Linux runtime support or other unverified capabilities without evidence from those environments and pinned upstream inputs.
+For code contributions, run the relevant checks and include the exact commands and results. The current verification commands are `dotnet build NemotronDiarizationSharp.slnx -c Release` and `dotnet test NemotronDiarizationSharp.slnx -c Release`. Do not claim Linux runtime support or other unverified capabilities without evidence from those environments and pinned upstream inputs.
 
 ## Main branch and releases
 

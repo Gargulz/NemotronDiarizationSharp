@@ -132,7 +132,7 @@ public sealed class PublicApiContractTests
             Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)).Parent?.Name
             ?? throw new InvalidOperationException("Could not determine the test build configuration.");
         DirectoryInfo? root = new DirectoryInfo(AppContext.BaseDirectory);
-        while (root is not null && !File.Exists(Path.Combine(root.FullName, "NemotronDiarizationSharp.sln")))
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "NemotronDiarizationSharp.slnx")))
             root = root.Parent;
         if (root is null)
             throw new InvalidOperationException("Could not locate the repository solution from the test output directory.");
