@@ -9,6 +9,47 @@ namespace NemotronDiarizationSharp.Tests;
 public sealed class ManagedBehaviorTests
 {
     [Fact]
+    public void PartialStreamCloseFailureRetainsModelReference()
+    {
+        bool released = false;
+
+        Assert.Throws<InvalidOperationException>(() => DiarizationModel.ClosePartialStreamAndReleaseModel(
+            (nint)1,
+            _ => throw new InvalidOperationException("close failed"),
+            () => released = true));
+
+        Assert.False(released);
+    }
+
+    [Fact]
+    public void PartialStreamCloseSuccessReleasesModelReference()
+    {
+        bool closed = false;
+        bool released = false;
+
+        DiarizationModel.ClosePartialStreamAndReleaseModel(
+            (nint)1,
+            _ => closed = true,
+            () => released = true);
+
+        Assert.True(closed);
+        Assert.True(released);
+    }
+
+    [Fact]
+    public void MissingPartialStreamReleasesModelReferenceWithoutClosing()
+    {
+        bool released = false;
+
+        DiarizationModel.ClosePartialStreamAndReleaseModel(
+            0,
+            _ => throw new InvalidOperationException("close should not run"),
+            () => released = true);
+
+        Assert.True(released);
+    }
+
+    [Fact]
     public void SnapshotMapsRetainedProbabilityFramesAndTimestamps()
     {
         var snapshot = new DiarizationSnapshot(

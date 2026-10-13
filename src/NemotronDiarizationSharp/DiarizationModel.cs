@@ -141,17 +141,24 @@ public sealed class DiarizationModel : IDisposable
         }
         finally
         {
-            try
+            if (modelReferenceAdded)
             {
-                if (stream != 0)
-                    NativeMethods.DiarStreamClose(stream);
-            }
-            finally
-            {
-                if (modelReferenceAdded)
-                    _handle.DangerousRelease();
+                ClosePartialStreamAndReleaseModel(stream, NativeMethods.DiarStreamClose, _handle.DangerousRelease);
+                modelReferenceAdded = false;
             }
         }
+    }
+
+    internal static void ClosePartialStreamAndReleaseModel(
+        nint stream, Action<nint> closeStream, Action releaseModelReference)
+    {
+        ArgumentNullException.ThrowIfNull(closeStream);
+        ArgumentNullException.ThrowIfNull(releaseModelReference);
+
+        if (stream != 0)
+            closeStream(stream);
+
+        releaseModelReference();
     }
 
     /// <summary>
