@@ -329,8 +329,9 @@ public sealed class RevisionAwareResultsTests
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
-            Task operation = stream.PushChunksAsync(WaitForReleaseAsync(entered, release), 16000);
-            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Task operation = stream.PushChunksAsync(WaitForReleaseAsync(entered, release), 16000,
+                TestContext.Current.CancellationToken);
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             Assert.Throws<InvalidOperationException>(() => stream.ReadResultUpdates());
             release.SetResult();
             await operation;

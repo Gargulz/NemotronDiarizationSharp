@@ -26,7 +26,8 @@ public sealed class AsyncResultsTests
         try
         {
             var updates = new List<DiarizationResultUpdate>();
-            await foreach (DiarizationResultUpdate update in fixture.Stream.ProcessStreamAsync(Source(), 16000))
+            await foreach (DiarizationResultUpdate update in fixture.Stream.ProcessStreamAsync(
+                Source(), 16000, TestContext.Current.CancellationToken))
                 updates.Add(update);
 
             Assert.Equal(4, updates.Count);
@@ -69,11 +70,12 @@ public sealed class AsyncResultsTests
         try
         {
             IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(Source(), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(Source(), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             try
             {
                 Assert.True(await enumerator.MoveNextAsync());
-                await firstRequested.Task.WaitAsync(Watchdog);
+                await firstRequested.Task.WaitAsync(Watchdog, TestContext.Current.CancellationToken);
                 Assert.False(secondRequested.Task.IsCompleted);
                 Assert.Throws<InvalidOperationException>(() => fixture.Stream.Push([0.3f], 16000));
                 Assert.Throws<InvalidOperationException>(() => fixture.Stream.Finish());
@@ -81,7 +83,8 @@ public sealed class AsyncResultsTests
                 Assert.Throws<InvalidOperationException>(() => fixture.Stream.Dispose());
 
                 IAsyncEnumerator<DiarizationResultUpdate> competing = fixture.Stream
-                    .ProcessStreamAsync(EmptySource(), 16000).GetAsyncEnumerator();
+                    .ProcessStreamAsync(EmptySource(), 16000, TestContext.Current.CancellationToken)
+                    .GetAsyncEnumerator(TestContext.Current.CancellationToken);
                 try
                 {
                     await Assert.ThrowsAsync<InvalidOperationException>(async () => await competing.MoveNextAsync());
@@ -128,7 +131,8 @@ public sealed class AsyncResultsTests
         try
         {
             await using IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(Source(), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(Source(), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             Assert.True(await enumerator.MoveNextAsync());
             Assert.True(enumerator.Current.IsFinal);
             Assert.Equal(1, enumerator.Current.Sequence);
@@ -149,15 +153,19 @@ public sealed class AsyncResultsTests
         canceled.Cancel();
         try
         {
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                canceled.Token, TestContext.Current.CancellationToken);
             IAsyncEnumerator<DiarizationResultUpdate> canceledEnumerator = fixture.Stream
-                .ProcessStreamAsync(EmptySource(), 16000, canceled.Token).GetAsyncEnumerator();
+                .ProcessStreamAsync(EmptySource(), 16000, linkedCancellation.Token)
+                .GetAsyncEnumerator(linkedCancellation.Token);
             await using (canceledEnumerator)
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await canceledEnumerator.MoveNextAsync());
             Assert.Equal(0, fixture.PushCount);
             Assert.Equal(0, fixture.FinishCount);
 
             IAsyncEnumerator<DiarizationResultUpdate> invalidRate = fixture.Stream
-                .ProcessStreamAsync(EmptySource(), 7999).GetAsyncEnumerator();
+                .ProcessStreamAsync(EmptySource(), 7999, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await using (invalidRate)
                 await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => await invalidRate.MoveNextAsync());
 
@@ -165,7 +173,8 @@ public sealed class AsyncResultsTests
             Assert.Equal(1, fixture.PushCount);
             fixture.Stream.Finish();
             IAsyncEnumerator<DiarizationResultUpdate> finished = fixture.Stream
-                .ProcessStreamAsync(EmptySource(), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(EmptySource(), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await using (finished)
                 await Assert.ThrowsAsync<InvalidOperationException>(async () => await finished.MoveNextAsync());
         }
@@ -189,6 +198,8 @@ public sealed class AsyncResultsTests
             return NativeStatus.Ok;
         }, probabilities: () => recordedProbabilities.ToArray());
         using var cancellation = new CancellationTokenSource();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellation.Token, TestContext.Current.CancellationToken);
         async IAsyncEnumerable<ReadOnlyMemory<float>> Source()
         {
             yield return new float[] { 0.65f };
@@ -199,12 +210,13 @@ public sealed class AsyncResultsTests
         try
         {
             await using IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(Source(), 16000, cancellation.Token).GetAsyncEnumerator();
+                .ProcessStreamAsync(Source(), 16000, linkedCancellation.Token)
+                .GetAsyncEnumerator(linkedCancellation.Token);
             Task<bool> moving = enumerator.MoveNextAsync().AsTask();
-            await pushStarted.Task.WaitAsync(Watchdog);
+            await pushStarted.Task.WaitAsync(Watchdog, TestContext.Current.CancellationToken);
             cancellation.Cancel();
             releasePush.SetResult();
-            Assert.True(await moving.WaitAsync(Watchdog));
+            Assert.True(await moving.WaitAsync(Watchdog, TestContext.Current.CancellationToken));
             Assert.Equal(new[] { 0.65f }, enumerator.Current.NewFrames.Probabilities);
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await enumerator.MoveNextAsync());
             Assert.Equal(1, fixture.PushCount);
@@ -223,6 +235,8 @@ public sealed class AsyncResultsTests
     {
         var fixture = new Fixture();
         using var cancellation = new CancellationTokenSource();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellation.Token, TestContext.Current.CancellationToken);
         CancellationToken received = default;
         async IAsyncEnumerable<ReadOnlyMemory<float>> Source(
             [EnumeratorCancellation] CancellationToken token = default)
@@ -235,8 +249,9 @@ public sealed class AsyncResultsTests
         try
         {
             await foreach (DiarizationResultUpdate _ in fixture.Stream
-                .ProcessStreamAsync(Source(), 16000).WithCancellation(cancellation.Token)) { }
-            Assert.Equal(cancellation.Token, received);
+                .ProcessStreamAsync(Source(linkedCancellation.Token), 16000, linkedCancellation.Token)
+                .WithCancellation(linkedCancellation.Token)) { }
+            Assert.Equal(linkedCancellation.Token, received);
         }
         finally
         {
@@ -249,7 +264,10 @@ public sealed class AsyncResultsTests
     {
         var fixture = new Fixture();
         using var cancellation = new CancellationTokenSource();
-        async IAsyncEnumerable<ReadOnlyMemory<float>> Source()
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellation.Token, TestContext.Current.CancellationToken);
+        async IAsyncEnumerable<ReadOnlyMemory<float>> Source(
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             yield return new float[] { 0.5f };
             await Task.CompletedTask;
@@ -258,7 +276,8 @@ public sealed class AsyncResultsTests
         try
         {
             await using IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(Source(), 16000, cancellation.Token).GetAsyncEnumerator();
+                .ProcessStreamAsync(Source(linkedCancellation.Token), 16000, linkedCancellation.Token)
+                .GetAsyncEnumerator(linkedCancellation.Token);
             Assert.True(await enumerator.MoveNextAsync());
             cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await enumerator.MoveNextAsync());
@@ -277,6 +296,8 @@ public sealed class AsyncResultsTests
         var fixture = new Fixture();
         var sourceEntered = NewSignal();
         using var cancellation = new CancellationTokenSource();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellation.Token, TestContext.Current.CancellationToken);
         async IAsyncEnumerable<ReadOnlyMemory<float>> Source(
             [EnumeratorCancellation] CancellationToken token = default)
         {
@@ -288,9 +309,10 @@ public sealed class AsyncResultsTests
         try
         {
             IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(Source(), 16000, cancellation.Token).GetAsyncEnumerator();
+                .ProcessStreamAsync(Source(linkedCancellation.Token), 16000, linkedCancellation.Token)
+                .GetAsyncEnumerator(linkedCancellation.Token);
             Task<bool> moving = enumerator.MoveNextAsync().AsTask();
-            await sourceEntered.Task.WaitAsync(Watchdog);
+            await sourceEntered.Task.WaitAsync(Watchdog, TestContext.Current.CancellationToken);
             Assert.Throws<InvalidOperationException>(() => fixture.Stream.Push([0.2f], 16000));
             cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => moving);
@@ -310,6 +332,8 @@ public sealed class AsyncResultsTests
         var finishStarted = NewSignal();
         var releaseFinish = NewSignal();
         using var cancellation = new CancellationTokenSource();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellation.Token, TestContext.Current.CancellationToken);
         int finishCalls = 0;
         var fixture = new Fixture(finish: _ =>
         {
@@ -322,12 +346,13 @@ public sealed class AsyncResultsTests
         try
         {
             await using IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(EmptySource(), 16000, cancellation.Token).GetAsyncEnumerator();
+                .ProcessStreamAsync(EmptySource(), 16000, linkedCancellation.Token)
+                .GetAsyncEnumerator(linkedCancellation.Token);
             Task<bool> moving = enumerator.MoveNextAsync().AsTask();
-            await finishStarted.Task.WaitAsync(Watchdog);
+            await finishStarted.Task.WaitAsync(Watchdog, TestContext.Current.CancellationToken);
             cancellation.Cancel();
             releaseFinish.SetResult();
-            Assert.True(await moving.WaitAsync(Watchdog));
+            Assert.True(await moving.WaitAsync(Watchdog, TestContext.Current.CancellationToken));
             Assert.True(enumerator.Current.IsFinal);
             Assert.False(await enumerator.MoveNextAsync());
             Assert.Equal(1, finishCalls);
@@ -357,7 +382,8 @@ public sealed class AsyncResultsTests
         try
         {
             await using (IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(FailingSource(), 16000).GetAsyncEnumerator())
+                .ProcessStreamAsync(FailingSource(), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken))
             {
                 Assert.True(await enumerator.MoveNextAsync());
                 await Assert.ThrowsAsync<TestSourceException>(async () => await enumerator.MoveNextAsync());
@@ -368,14 +394,18 @@ public sealed class AsyncResultsTests
             fixture.Stream.Push([0.4f], 16000);
 
             IAsyncEnumerator<DiarizationResultUpdate> acquisitionFailure = fixture.Stream
-                .ProcessStreamAsync(new CustomSource(() => throw new TestSourceException()), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(new CustomSource(() => throw new TestSourceException()), 16000,
+                    TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await Assert.ThrowsAsync<TestSourceException>(async () => await acquisitionFailure.MoveNextAsync());
             await acquisitionFailure.DisposeAsync();
             fixture.Stream.Push([0.45f], 16000);
 
             CurrentThrowingEnumerator? inner = null;
             var source = new CustomSource(() => inner = new CurrentThrowingEnumerator());
-            IAsyncEnumerator<DiarizationResultUpdate> result = fixture.Stream.ProcessStreamAsync(source, 16000).GetAsyncEnumerator();
+            IAsyncEnumerator<DiarizationResultUpdate> result = fixture.Stream.ProcessStreamAsync(source, 16000,
+                    TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await Assert.ThrowsAsync<TestSourceException>(async () => await result.MoveNextAsync());
             Assert.Equal(1, inner!.DisposeCount);
             await result.DisposeAsync();
@@ -395,7 +425,9 @@ public sealed class AsyncResultsTests
         {
             var sourceEnumerator = new DisposeThrowingEnumerator();
             IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(new CustomSource(() => sourceEnumerator), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(new CustomSource(() => sourceEnumerator), 16000,
+                    TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             Assert.True(await enumerator.MoveNextAsync());
             await Assert.ThrowsAsync<TestSourceException>(() => enumerator.DisposeAsync().AsTask());
             Assert.Equal(1, sourceEnumerator.DisposeCount);
@@ -419,7 +451,8 @@ public sealed class AsyncResultsTests
         try
         {
             IAsyncEnumerator<DiarizationResultUpdate> pushEnumerator = fixture.Stream
-                .ProcessStreamAsync(OneChunk(0.4f), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(OneChunk(0.4f), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await pushEnumerator.MoveNextAsync());
             await pushEnumerator.DisposeAsync();
             Assert.Equal(1, pushes);
@@ -436,7 +469,8 @@ public sealed class AsyncResultsTests
         try
         {
             IAsyncEnumerator<DiarizationResultUpdate> finishEnumerator = fixture.Stream
-                .ProcessStreamAsync(EmptySource(), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(EmptySource(), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await finishEnumerator.MoveNextAsync());
             await finishEnumerator.DisposeAsync();
             Assert.Equal(1, finishes);
@@ -461,7 +495,8 @@ public sealed class AsyncResultsTests
         try
         {
             IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(OneChunk(0.3f), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(OneChunk(0.3f), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await enumerator.MoveNextAsync());
             await enumerator.DisposeAsync();
             Assert.Equal(1, fixture.PushCount);
@@ -471,13 +506,15 @@ public sealed class AsyncResultsTests
             fixture.TotalFrames = 3;
             fixture.RetainedStart = 2;
             IAsyncEnumerator<DiarizationResultUpdate> gapEnumerator = fixture.Stream
-                .ProcessStreamAsync(OneChunk(0.4f), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(OneChunk(0.4f), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await Assert.ThrowsAsync<DiarizationFrameHistoryGapException>(async () => await gapEnumerator.MoveNextAsync());
             await gapEnumerator.DisposeAsync();
             Assert.Equal(2, fixture.PushCount);
             Assert.Equal(new DiarizationFrameRange(1, 2), fixture.Stream.ReadResultUpdates(allowHistoryGap: true).HistoryGap);
             fixture.RetainedStart = 0;
-            await foreach (DiarizationResultUpdate update in fixture.Stream.ProcessStreamAsync(EmptySource(), 16000))
+            await foreach (DiarizationResultUpdate update in fixture.Stream.ProcessStreamAsync(
+                EmptySource(), 16000, TestContext.Current.CancellationToken))
                 Assert.True(update.IsFinal);
         }
         finally
@@ -498,7 +535,8 @@ public sealed class AsyncResultsTests
         try
         {
             IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(OneChunk(0.35f), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(OneChunk(0.35f), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await enumerator.MoveNextAsync());
             Assert.Equal("Fake segment read failure.", error.Message);
@@ -531,7 +569,8 @@ public sealed class AsyncResultsTests
         {
             fixture.Stream.Push([0.2f], 16000);
             IAsyncEnumerator<DiarizationResultUpdate> enumerator = fixture.Stream
-                .ProcessStreamAsync(EmptySource(), 16000).GetAsyncEnumerator();
+                .ProcessStreamAsync(EmptySource(), 16000, TestContext.Current.CancellationToken)
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await enumerator.MoveNextAsync());
             await enumerator.DisposeAsync();
             DiarizationResultUpdate recovered = fixture.Stream.ReadResultUpdates();
@@ -554,9 +593,11 @@ public sealed class AsyncResultsTests
         try
         {
             Assert.Equal(1, first.Stream.ReadResultUpdates().Sequence);
-            DiarizationResultUpdate fromAsync = await FirstAsync(first.Stream.ProcessStreamAsync(EmptySource(), 16000));
+            DiarizationResultUpdate fromAsync = await FirstAsync(first.Stream.ProcessStreamAsync(
+                EmptySource(), 16000, TestContext.Current.CancellationToken));
             Assert.Equal(2, fromAsync.Sequence);
-            DiarizationResultUpdate other = await FirstAsync(second.Stream.ProcessStreamAsync(EmptySource(), 16000));
+            DiarizationResultUpdate other = await FirstAsync(second.Stream.ProcessStreamAsync(
+                EmptySource(), 16000, TestContext.Current.CancellationToken));
             Assert.Equal(1, other.Sequence);
             Assert.NotEqual(fromAsync.SourceId, other.SourceId);
         }
@@ -586,7 +627,8 @@ public sealed class AsyncResultsTests
 
     private static async Task<DiarizationResultUpdate> FirstAsync(IAsyncEnumerable<DiarizationResultUpdate> updates)
     {
-        await using IAsyncEnumerator<DiarizationResultUpdate> enumerator = updates.GetAsyncEnumerator();
+        await using IAsyncEnumerator<DiarizationResultUpdate> enumerator = updates.GetAsyncEnumerator(
+            TestContext.Current.CancellationToken);
         Assert.True(await enumerator.MoveNextAsync());
         return enumerator.Current;
     }

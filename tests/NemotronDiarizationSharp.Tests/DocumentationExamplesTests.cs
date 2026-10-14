@@ -45,6 +45,23 @@ public sealed class DocumentationExamplesTests
     }
 
     [Theory]
+    [InlineData("README.md")]
+    [InlineData("README.ru.md")]
+    public void ConsumerExampleMatchesCompiledPublicApiMethod(string readme)
+    {
+        string root = FindRepositoryRoot();
+        string document = File.ReadAllText(Path.Combine(root, readme)).Replace("\r\n", "\n");
+        string source = File.ReadAllText(Path.Combine(root, "tests", "NemotronDiarizationSharp.Tests",
+            "DocumentationExamplesTests.cs")).Replace("\r\n", "\n");
+        string documented = ExtractBetween(document,
+            "<!-- sdk-example: consumer-api -->\n```csharp\n", "\n```");
+        string compiled = ExtractBetween(source, "// sdk-example: consumer-api\n", "    // sdk-example-end");
+        string normalized = string.Join("\n", compiled.TrimEnd('\n').Split('\n')
+            .Select(line => line.StartsWith("    ", StringComparison.Ordinal) ? line[4..] : line));
+        Assert.Equal(normalized, documented);
+    }
+
+    [Theory]
     [InlineData("README.md", "preset-options")]
     [InlineData("README.ru.md", "preset-options")]
     [InlineData("README.md", "json-configuration")]
@@ -235,6 +252,35 @@ public sealed class DocumentationExamplesTests
         }
 
         return Array.Empty<DiarizationSegment>();
+    }
+    // sdk-example-end
+
+    // sdk-example: consumer-api
+    static DiarizationSnapshot ProcessConsumerPcm(
+        string modelPath,
+        string nativeRuntimeDirectory,
+        ReadOnlySpan<float> monoPcm,
+        int sampleRate,
+        string? rttmPath = null)
+    {
+        Environment.SetEnvironmentVariable("NEMOTONDIARIZATIONSHARP_NATIVE_DIR",
+            Path.GetFullPath(nativeRuntimeDirectory));
+        using var model = DiarizationModel.Load(Path.GetFullPath(modelPath),
+            new DiarizationModelOptions { GpuDeviceIndex = null });
+        DiarizationSnapshot result = model.ProcessOffline(monoPcm, sampleRate);
+
+        if (result.FrameCount > 0)
+            Console.WriteLine($"Frame 0 at {result.GetFrameTimestamp(0):F2}s: " +
+                $"speaker channel 0 probability {result.GetProbability(0, 0):F3} of {result.SpeakerCount}");
+        foreach (DiarizationSegment segment in result.Segments)
+            Console.WriteLine($"{segment.StartTime:F2}-{segment.EndTime:F2}: speaker {segment.Speaker}");
+
+        if (rttmPath is not null)
+        {
+            using var writer = File.CreateText(rttmPath);
+            DiarizationPostprocessor.WriteRttm(writer, result.Segments, recordingId: "recording");
+        }
+        return result;
     }
     // sdk-example-end
 }

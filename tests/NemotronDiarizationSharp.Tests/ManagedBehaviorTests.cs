@@ -175,7 +175,7 @@ public sealed class ManagedBehaviorTests
     {
         var processed = new List<float>();
         await DiarizationStream.ProcessChunksSequentiallyAsync(
-            YieldChunksAsync([]), CancellationToken.None,
+            YieldChunksAsync([], TestContext.Current.CancellationToken), TestContext.Current.CancellationToken,
             chunk =>
             {
                 processed.AddRange(chunk.ToArray());
@@ -184,7 +184,7 @@ public sealed class ManagedBehaviorTests
         Assert.Empty(processed);
 
         await DiarizationStream.ProcessChunksSequentiallyAsync(
-            YieldChunksAsync([[1f, 2f], [3f], [4f, 5f]]), CancellationToken.None,
+            YieldChunksAsync([[1f, 2f], [3f], [4f, 5f]], TestContext.Current.CancellationToken), TestContext.Current.CancellationToken,
             chunk =>
             {
                 processed.AddRange(chunk.ToArray());
@@ -194,7 +194,7 @@ public sealed class ManagedBehaviorTests
         Assert.Equal(new[] { 1f, 2f, 3f, 4f, 5f }, processed);
 
         await DiarizationStream.ProcessChunksSequentiallyAsync(
-            YieldChunksAsync([[6f]]), CancellationToken.None,
+            YieldChunksAsync([[6f]], TestContext.Current.CancellationToken), TestContext.Current.CancellationToken,
             chunk =>
             {
                 processed.AddRange(chunk.ToArray());
@@ -220,7 +220,8 @@ public sealed class ManagedBehaviorTests
             await Task.CompletedTask;
         }
 
-        Task operation = DiarizationStream.ProcessChunksSequentiallyAsync(Source(), CancellationToken.None,
+        Task operation = DiarizationStream.ProcessChunksSequentiallyAsync(
+            Source(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken,
             chunk =>
             {
                 processed++;
@@ -247,9 +248,12 @@ public sealed class ManagedBehaviorTests
         using (var alreadyCanceled = new CancellationTokenSource())
         {
             alreadyCanceled.Cancel();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                alreadyCanceled.Token, TestContext.Current.CancellationToken);
             int processedBeforeStart = 0;
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                DiarizationStream.ProcessChunksSequentiallyAsync(YieldChunksAsync([[0f]]), alreadyCanceled.Token,
+                DiarizationStream.ProcessChunksSequentiallyAsync(
+                    YieldChunksAsync([[0f]], linkedCancellation.Token), linkedCancellation.Token,
                     _ =>
                     {
                         processedBeforeStart++;
@@ -261,9 +265,11 @@ public sealed class ManagedBehaviorTests
         var waiting = NewSignal();
         using (var waitingCancellation = new CancellationTokenSource())
         {
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                waitingCancellation.Token, TestContext.Current.CancellationToken);
             int processed = 0;
             Task waitingOperation = DiarizationStream.ProcessChunksSequentiallyAsync(
-                WaitForCancellationAsync(waiting), waitingCancellation.Token,
+                WaitForCancellationAsync(waiting, linkedCancellation.Token), linkedCancellation.Token,
                 _ =>
                 {
                     processed++;
@@ -277,11 +283,13 @@ public sealed class ManagedBehaviorTests
         }
 
         using var betweenChunksCancellation = new CancellationTokenSource();
+        using var linkedBetweenChunksCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            betweenChunksCancellation.Token, TestContext.Current.CancellationToken);
         var firstProcessing = NewSignal();
         var allowFirstToComplete = NewSignal();
         var processedValues = new List<float>();
         Task betweenChunksOperation = DiarizationStream.ProcessChunksSequentiallyAsync(
-            YieldChunksAsync([[1f], [2f]]), betweenChunksCancellation.Token,
+            YieldChunksAsync([[1f], [2f]], linkedBetweenChunksCancellation.Token), linkedBetweenChunksCancellation.Token,
             chunk =>
             {
                 processedValues.Add(chunk.Span[0]);
@@ -312,13 +320,14 @@ public sealed class ManagedBehaviorTests
         }
 
         InvalidOperationException observedSourceError = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => DiarizationStream.ProcessChunksSequentiallyAsync(FaultingSource(), CancellationToken.None,
+            () => DiarizationStream.ProcessChunksSequentiallyAsync(FaultingSource(), TestContext.Current.CancellationToken,
                 _ => Task.CompletedTask));
         Assert.Same(sourceError, observedSourceError);
 
         var processingError = new InvalidOperationException("native push failed");
         InvalidOperationException observedProcessingError = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => DiarizationStream.ProcessChunksSequentiallyAsync(YieldChunksAsync([[1f]]), CancellationToken.None,
+            () => DiarizationStream.ProcessChunksSequentiallyAsync(
+                YieldChunksAsync([[1f]], TestContext.Current.CancellationToken), TestContext.Current.CancellationToken,
                 _ => Task.FromException(processingError)));
         Assert.Same(processingError, observedProcessingError);
     }
@@ -379,7 +388,8 @@ public sealed class ManagedBehaviorTests
 
         Assert.Throws<ArgumentException>(() => stream.Push([float.NaN], 16000));
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            stream.PushChunksAsync(YieldChunksAsync([[float.PositiveInfinity]]), 16000));
+            stream.PushChunksAsync(YieldChunksAsync([[float.PositiveInfinity]], TestContext.Current.CancellationToken), 16000,
+                TestContext.Current.CancellationToken));
         Assert.Equal(0, pushCalls);
 
         stream.Push([0f], 16000);
@@ -463,7 +473,8 @@ public sealed class ManagedBehaviorTests
             _ => NativeStatus.Ok);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            stream.PushChunksAsync(YieldChunksAsync([[1f]]), 16000));
+            stream.PushChunksAsync(YieldChunksAsync([[1f]], TestContext.Current.CancellationToken), 16000,
+                TestContext.Current.CancellationToken));
         Assert.Throws<InvalidOperationException>(() => stream.Finish());
         Assert.Throws<InvalidOperationException>(() => stream.GetSnapshot());
     }

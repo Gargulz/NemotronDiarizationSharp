@@ -267,7 +267,8 @@ public sealed class WindowsNativeInferenceTests
             synchronous.Push(samples.AsSpan(start, count), sampleRate: 16000);
         }
 
-        await asynchronous.PushChunksAsync(YieldChunksAsync(chunks), sampleRate: 16000);
+        await asynchronous.PushChunksAsync(YieldChunksAsync(chunks, TestContext.Current.CancellationToken), sampleRate: 16000,
+            TestContext.Current.CancellationToken);
         synchronous.Finish();
         asynchronous.Finish();
         DiarizationSnapshot syncResult = synchronous.GetSnapshot();
@@ -309,29 +310,39 @@ public sealed class WindowsNativeInferenceTests
         int split = samples.Length / 2;
         using var preCanceled = new CancellationTokenSource();
         preCanceled.Cancel();
+        using var linkedPreCanceled = CancellationTokenSource.CreateLinkedTokenSource(
+            preCanceled.Token, TestContext.Current.CancellationToken);
         Action canceledStart = () => _ = stream.PushChunksAsync(
-            YieldChunksAsync([]), sampleRate: 16000, preCanceled.Token);
+            YieldChunksAsync([], linkedPreCanceled.Token), sampleRate: 16000, linkedPreCanceled.Token);
         Assert.Throws<OperationCanceledException>(canceledStart);
 
         stream.Push(samples.AsSpan(0, 1), sampleRate: 16000);
-        Action invalidRate = () => _ = stream.PushChunksAsync(YieldChunksAsync([]), sampleRate: 7999);
-        Action changedRate = () => _ = stream.PushChunksAsync(YieldChunksAsync([]), sampleRate: 48000);
+        Action invalidRate = () => _ = stream.PushChunksAsync(
+            YieldChunksAsync([], TestContext.Current.CancellationToken), sampleRate: 7999,
+            TestContext.Current.CancellationToken);
+        Action changedRate = () => _ = stream.PushChunksAsync(
+            YieldChunksAsync([], TestContext.Current.CancellationToken), sampleRate: 48000,
+            TestContext.Current.CancellationToken);
         Assert.Throws<ArgumentOutOfRangeException>(invalidRate);
         Assert.Throws<ArgumentException>(changedRate);
         using var cancellation = new CancellationTokenSource();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellation.Token, TestContext.Current.CancellationToken);
         var waitingForNextChunk = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         Task operation = stream.PushChunksAsync(
-            YieldThenWaitAsync(samples.AsMemory(1, split - 1), waitingForNextChunk),
-            sampleRate: 16000, cancellation.Token);
-        await waitingForNextChunk.Task;
+            YieldThenWaitAsync(samples.AsMemory(1, split - 1), waitingForNextChunk, linkedCancellation.Token),
+            sampleRate: 16000, linkedCancellation.Token);
+        await waitingForNextChunk.Task.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Throws<InvalidOperationException>(() => stream.Push([0f], sampleRate: 16000));
         Assert.Throws<InvalidOperationException>(() => stream.Finish());
         Assert.Throws<InvalidOperationException>(() => stream.GetSnapshot());
         Assert.Throws<InvalidOperationException>(() => stream.ReadNewFrames());
         Assert.Throws<InvalidOperationException>(() => stream.Dispose());
-        Action overlappingAsyncPush = () => _ = stream.PushChunksAsync(YieldChunksAsync([]), sampleRate: 16000);
+        Action overlappingAsyncPush = () => _ = stream.PushChunksAsync(
+            YieldChunksAsync([], TestContext.Current.CancellationToken), sampleRate: 16000,
+            TestContext.Current.CancellationToken);
         Assert.Throws<InvalidOperationException>(overlappingAsyncPush);
 
         cancellation.Cancel();
@@ -339,7 +350,8 @@ public sealed class WindowsNativeInferenceTests
 
         ReadOnlyMemory<float>[] invalidChunks = [new float[] { float.NaN }];
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            stream.PushChunksAsync(YieldChunksAsync(invalidChunks), sampleRate: 16000));
+            stream.PushChunksAsync(YieldChunksAsync(invalidChunks, TestContext.Current.CancellationToken), sampleRate: 16000,
+                TestContext.Current.CancellationToken));
 
         // Cancellation preserves the successfully pushed prefix; the caller can supply its remainder.
         stream.Push(samples.AsSpan(split), sampleRate: 16000);
