@@ -1,8 +1,10 @@
 using System.Buffers.Binary;
 
-namespace NemotronDiarizationSharp.Examples;
+namespace NemotronDiarizationSharp;
 
-internal sealed class WavePcmReader : IDisposable
+/// <summary>Reads mono float32 samples from little-endian RIFF/WAVE audio.</summary>
+/// <remarks>Supports PCM 8/16/24/32-bit and IEEE float32, averages channels, and does not support WAVE_FORMAT_EXTENSIBLE, RIFX, or RF64.</remarks>
+public sealed class DiarizationWaveReader : IDisposable
 {
     private readonly Stream _stream;
     private readonly bool _leaveOpen;
@@ -13,9 +15,9 @@ internal sealed class WavePcmReader : IDisposable
     private bool _disposed;
     private bool _failed;
 
-    public WavePcmReader(string path) : this(File.OpenRead(path), leaveOpen: false) { }
+    public DiarizationWaveReader(string path) : this(File.OpenRead(path), leaveOpen: false) { }
 
-    public WavePcmReader(Stream stream, bool leaveOpen = false)
+    public DiarizationWaveReader(Stream stream, bool leaveOpen = false)
     {
         ArgumentNullException.ThrowIfNull(stream);
         _stream = stream;

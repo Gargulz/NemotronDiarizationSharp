@@ -158,7 +158,7 @@ internal static class ConsoleApplication
 
     private sealed class AudioSource : IDisposable
     {
-        private readonly WavePcmReader? _wave;
+        private readonly DiarizationWaveReader? _wave;
         private readonly FileStream? _raw;
         private readonly byte[]? _rawBuffer;
         private long _remaining;
@@ -167,7 +167,7 @@ internal static class ConsoleApplication
         {
             if (options.RawSampleRate is null)
             {
-                _wave = new WavePcmReader(options.InputPath);
+                _wave = new DiarizationWaveReader(options.InputPath);
                 SampleRate = _wave.SampleRate;
             }
             else

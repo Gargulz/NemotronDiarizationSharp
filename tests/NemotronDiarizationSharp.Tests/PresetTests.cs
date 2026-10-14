@@ -5,6 +5,30 @@ namespace NemotronDiarizationSharp.Tests;
 
 public sealed class PresetTests
 {
+    [Fact]
+    public void ScenarioOptionsSelectThePublishedGeometryAndKeepIndependentOverrides()
+    {
+        DiarizationModelOptions recording = DiarizationModelOptions.ForCompletedRecording();
+        DiarizationModelOptions streaming = DiarizationModelOptions.ForLiveStreaming();
+        Assert.Equal(DiarizationPresets.Nemotron3OfflineStyle, recording.Preset);
+        Assert.Equal(DiarizationPresets.Nemotron3LowLatency, streaming.Preset);
+
+        DiarizationModelOptions recordingOverrides = new DiarizationModelOptions
+        {
+            GpuDeviceIndex = 0,
+            ChunkFrames = 320
+        }.WithDefaultPreset(DiarizationPresets.Nemotron3OfflineStyle);
+        Assert.Equal(DiarizationPresets.Nemotron3OfflineStyle, recordingOverrides.Preset);
+        Assert.Equal(0, recordingOverrides.GpuDeviceIndex);
+        Assert.Equal(320, recordingOverrides.ChunkFrames);
+
+        DiarizationModelOptions explicitGeometry = new DiarizationModelOptions
+        {
+            Preset = DiarizationPresets.Nemotron3UltraLowLatency
+        }.WithDefaultPreset(DiarizationPresets.Nemotron3OfflineStyle);
+        Assert.Equal(DiarizationPresets.Nemotron3UltraLowLatency, explicitGeometry.Preset);
+    }
+
     [Theory]
     [InlineData(DiarizationPresets.Streaming, "streaming", 268_435_215)]
     [InlineData(DiarizationPresets.Offline, "offline", 268_435_043)]

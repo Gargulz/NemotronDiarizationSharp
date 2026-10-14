@@ -265,6 +265,7 @@ public sealed class RevisionAwareResultsTests
         }
     }
 
+
     [Fact]
     public async Task StreamReadFailuresStayRecoverableAndPushFinishFaultsRejectResultReads()
     {

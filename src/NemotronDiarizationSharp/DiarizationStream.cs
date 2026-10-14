@@ -9,6 +9,7 @@ public sealed class DiarizationStream : IDisposable
     private readonly object _sync = new();
     private readonly int _speakerCount;
     private readonly double _secondsPerFrame;
+    private readonly DiarizationSegmentationMode _defaultSegmentationMode;
     private readonly Func<StreamHandle, float[], nuint, int, NativeStatus> _pushNative;
     private readonly Func<StreamHandle, NativeStatus> _finishNative;
     private readonly Func<NativeStatus, Exception> _nativeErrorFactory;
@@ -23,19 +24,21 @@ public sealed class DiarizationStream : IDisposable
     private bool _asyncOperationActive;
     private bool _faulted;
 
-    internal DiarizationStream(StreamHandle handle, int speakerCount, double secondsPerFrame)
+    internal DiarizationStream(StreamHandle handle, int speakerCount, double secondsPerFrame,
+        DiarizationSegmentationMode defaultSegmentationMode = DiarizationSegmentationMode.Native)
         : this(handle, speakerCount, secondsPerFrame, NativeMethods.DiarStreamPushF32,
-            NativeMethods.DiarStreamFinish, status => NativeCallException.Create(status))
+            NativeMethods.DiarStreamFinish, status => NativeCallException.Create(status), defaultSegmentationMode)
     {
     }
 
     internal DiarizationStream(StreamHandle handle, int speakerCount, double secondsPerFrame,
         Func<StreamHandle, float[], nuint, int, NativeStatus> pushNative,
         Func<StreamHandle, NativeStatus> finishNative,
-        Func<NativeStatus, Exception> nativeErrorFactory)
+        Func<NativeStatus, Exception> nativeErrorFactory,
+        DiarizationSegmentationMode defaultSegmentationMode = DiarizationSegmentationMode.Native)
         : this(handle, speakerCount, secondsPerFrame, pushNative, finishNative, nativeErrorFactory,
             NativeMethods.DiarFrameCount, NativeMethods.DiarFrameProbsStart, NativeMethods.DiarFrameProbs,
-            stream => ReadResultSegments(stream, speakerCount, nativeErrorFactory))
+            stream => ReadResultSegments(stream, speakerCount, nativeErrorFactory), defaultSegmentationMode)
     {
     }
 
@@ -46,11 +49,13 @@ public sealed class DiarizationStream : IDisposable
         Func<StreamHandle, long> frameCountReader,
         Func<StreamHandle, long> retainedStartReader,
         Func<StreamHandle, float[], nuint, NativeStatus> probabilityReader,
-        Func<StreamHandle, DiarizationSegment[]> resultSegmentReader)
+        Func<StreamHandle, DiarizationSegment[]> resultSegmentReader,
+        DiarizationSegmentationMode defaultSegmentationMode = DiarizationSegmentationMode.Native)
     {
         _handle = handle ?? throw new ArgumentNullException(nameof(handle));
         _speakerCount = speakerCount;
         _secondsPerFrame = secondsPerFrame;
+        _defaultSegmentationMode = defaultSegmentationMode;
         _pushNative = pushNative ?? throw new ArgumentNullException(nameof(pushNative));
         _finishNative = finishNative ?? throw new ArgumentNullException(nameof(finishNative));
         _nativeErrorFactory = nativeErrorFactory ?? throw new ArgumentNullException(nameof(nativeErrorFactory));
@@ -130,10 +135,13 @@ public sealed class DiarizationStream : IDisposable
     /// </remarks>
     public async IAsyncEnumerable<DiarizationResultUpdate> ProcessStreamAsync(
         IAsyncEnumerable<ReadOnlyMemory<float>> chunks, int sampleRate,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default,
+        DiarizationResultOptions? resultOptions = null)
     {
         ArgumentNullException.ThrowIfNull(chunks);
         cancellationToken.ThrowIfCancellationRequested();
+        DiarizationResultOptions selectedResults = resultOptions ?? DefaultResultOptions();
+        selectedResults.Validate();
 
         lock (_sync)
         {
@@ -162,7 +170,7 @@ public sealed class DiarizationStream : IDisposable
                 // without passing cancellation into scheduling or native processing.
                 ReadOnlyMemory<float> chunk = enumerator.Current;
                 DiarizationResultUpdate update = await Task.Run(
-                    () => ProcessAsyncResultChunk(chunk, sampleRate)).ConfigureAwait(false);
+                    () => ProcessAsyncResultChunk(chunk, sampleRate, selectedResults)).ConfigureAwait(false);
                 yield return update;
             }
 
@@ -171,7 +179,8 @@ public sealed class DiarizationStream : IDisposable
             await completedEnumerator.DisposeAsync().ConfigureAwait(false);
 
             cancellationToken.ThrowIfCancellationRequested();
-            DiarizationResultUpdate finalUpdate = await Task.Run(FinishAndReadAsyncResult).ConfigureAwait(false);
+            DiarizationResultUpdate finalUpdate = await Task.Run(
+                () => FinishAndReadAsyncResult(selectedResults)).ConfigureAwait(false);
             yield return finalUpdate;
         }
         finally
@@ -252,7 +261,8 @@ public sealed class DiarizationStream : IDisposable
         }
     }
 
-    private DiarizationResultUpdate ProcessAsyncResultChunk(ReadOnlyMemory<float> monoPcm, int sampleRate)
+    private DiarizationResultUpdate ProcessAsyncResultChunk(ReadOnlyMemory<float> monoPcm, int sampleRate,
+        DiarizationResultOptions resultOptions)
     {
         lock (_sync)
         {
@@ -273,11 +283,11 @@ public sealed class DiarizationStream : IDisposable
                 _sampleRate ??= sampleRate;
             }
 
-            return ReadResultUpdatesCore(allowHistoryGap: false);
+            return ReadResultUpdatesWithResultsCore(allowHistoryGap: false, resultOptions);
         }
     }
 
-    private DiarizationResultUpdate FinishAndReadAsyncResult()
+    private DiarizationResultUpdate FinishAndReadAsyncResult(DiarizationResultOptions resultOptions)
     {
         lock (_sync)
         {
@@ -291,7 +301,7 @@ public sealed class DiarizationStream : IDisposable
                 _finished = true;
             }
 
-            return ReadResultUpdatesCore(allowHistoryGap: false);
+            return ReadResultUpdatesWithResultsCore(allowHistoryGap: false, resultOptions);
         }
     }
 
@@ -377,7 +387,30 @@ public sealed class DiarizationStream : IDisposable
     }
 
     public DiarizationSnapshot GetSnapshot()
-        => GetSnapshot(segmentationOptions: null);
+    {
+        if (_defaultSegmentationMode == DiarizationSegmentationMode.Native)
+            return GetSnapshot(segmentationOptions: null);
+        return GetSnapshotWithResults(new DiarizationResultOptions { SegmentationMode = _defaultSegmentationMode });
+    }
+
+    /// <summary>Reads a snapshot using native, managed, or NVIDIA NeMo reference segmentation.</summary>
+    public DiarizationSnapshot GetSnapshotWithResults(DiarizationResultOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        options.Validate();
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
+            NativeSegmentationConfig? nativeConfig = options.SegmentationMode == DiarizationSegmentationMode.Native
+                ? options.NativeOptions?.ToNativeConfig()
+                : null;
+            DiarizationSnapshot snapshot = ReadSnapshot(_handle, _speakerCount, _secondsPerFrame,
+                _finished, nativeConfig);
+            return ApplyResultOptions(snapshot, options);
+        }
+    }
 
     /// <summary>Reads a snapshot, applying segmentation settings to the native result.</summary>
     public DiarizationSnapshot GetSnapshot(DiarizationSegmentationOptions? segmentationOptions)
@@ -418,8 +451,44 @@ public sealed class DiarizationStream : IDisposable
             EnsureNoAsyncOperation();
             EnsureNotFaulted();
 
-            return ReadResultUpdatesCore(allowHistoryGap);
+            return ReadResultUpdatesWithResultsCore(allowHistoryGap, DefaultResultOptions());
         }
+    }
+
+    /// <summary>Reads incremental results using an explicit segmentation selection.</summary>
+    public DiarizationResultUpdate ReadResultUpdatesWithResults(DiarizationResultOptions options,
+        bool allowHistoryGap = false)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        options.Validate();
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+            EnsureNoAsyncOperation();
+            EnsureNotFaulted();
+            return ReadResultUpdatesWithResultsCore(allowHistoryGap, options);
+        }
+    }
+
+    private DiarizationResultOptions DefaultResultOptions()
+        => new() { SegmentationMode = _defaultSegmentationMode };
+
+    private DiarizationResultUpdate ReadResultUpdatesWithResultsCore(bool allowHistoryGap,
+        DiarizationResultOptions options)
+    {
+        DiarizationResultUpdate update = ReadResultUpdatesCore(allowHistoryGap);
+        if (options.SegmentationMode == DiarizationSegmentationMode.Native && options.NativeOptions is null)
+            return update;
+
+        NativeSegmentationConfig? nativeConfig = options.SegmentationMode == DiarizationSegmentationMode.Native
+            ? options.NativeOptions?.ToNativeConfig()
+            : null;
+        DiarizationSnapshot snapshot = ReadSnapshot(_handle, _speakerCount, _secondsPerFrame,
+            update.IsFinal, nativeConfig);
+        DiarizationSnapshot selected = ApplyResultOptions(snapshot, options);
+        return new DiarizationResultUpdate(update.SourceId, update.Sequence, update.FirstRetainedFrame,
+            update.FrameCount, update.SpeakerCount, update.SecondsPerFrame, update.IsFinal, update.NewFrames,
+            update.RevisedFrames, selected.Segments.ToArray(), update.HistoryGap, update.ComparedFrames);
     }
 
     private static DiarizationSegment[] ReadResultSegments(StreamHandle handle, int speakerCount,
@@ -456,6 +525,24 @@ public sealed class DiarizationStream : IDisposable
         ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
         NativeSegmentationConfig? nativeSegmentation = segmentationOptions?.ToNativeConfig();
         return ReadSnapshot(_handle, _speakerCount, _secondsPerFrame, _finished, nativeSegmentation);
+    }
+
+    internal static DiarizationSnapshot ApplyResultOptions(DiarizationSnapshot snapshot, DiarizationResultOptions options)
+    {
+        if (options.SegmentationMode == DiarizationSegmentationMode.NvidiaNeMoReference
+            && snapshot.IsFinal && snapshot.FirstProbabilityFrame != 0)
+            throw new InvalidOperationException("A final NVIDIA NeMo reference result requires probability history from frame zero; native compaction removed earlier frames.");
+
+        DiarizationSegment[] segments = options.SegmentationMode switch
+        {
+            DiarizationSegmentationMode.Native => snapshot.Segments.ToArray(),
+            DiarizationSegmentationMode.Managed => DiarizationPostprocessor.Segment(snapshot.ToFrameBatch(),
+                options.ManagedOptions).ToArray(),
+            DiarizationSegmentationMode.NvidiaNeMoReference => NvidiaNeMoReferencePostprocessor.Segment(snapshot,
+                options.NeMoReferenceOptions).ToArray(),
+            _ => throw new ArgumentOutOfRangeException(nameof(options))
+        };
+        return snapshot.WithSegments(segments);
     }
 
     private static DiarizationFrameBatch ReadNewFramesCore(StreamHandle handle, int speakerCount,

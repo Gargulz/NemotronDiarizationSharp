@@ -1,11 +1,10 @@
 using System.Buffers.Binary;
 using System.Text;
-using NemotronDiarizationSharp.Examples;
 using Xunit;
 
 namespace NemotronDiarizationSharp.Tests;
 
-public sealed class WavePcmReaderTests
+public sealed class DiarizationWaveReaderTests
 {
     [Theory]
     [InlineData(8)]
@@ -19,7 +18,7 @@ public sealed class WavePcmReaderTests
         long zero = bits == 8 ? 128 : 0;
         long half = bits == 8 ? 64 : -(1L << (bits - 2));
         using var stream = new MemoryStream(Wave(Format(1, bits), Pcm(bits, minimum, zero, maximum, half)));
-        using var reader = new WavePcmReader(stream);
+        using var reader = new DiarizationWaveReader(stream);
         float[] samples = new float[4];
         Assert.Equal(4, reader.Read(samples));
         Assert.Equal(-1f, samples[0]);
@@ -38,7 +37,7 @@ public sealed class WavePcmReaderTests
     public void DownmixesByArithmeticMean(int channels)
     {
         long[] values = Enumerable.Range(0, channels).Select(index => index == 0 ? 16384L : -8192L).ToArray();
-        using var reader = new WavePcmReader(new MemoryStream(Wave(Format(1, 16, channels), Pcm(16, values))));
+        using var reader = new DiarizationWaveReader(new MemoryStream(Wave(Format(1, 16, channels), Pcm(16, values))));
         float[] destination = new float[1];
         Assert.Equal(1, reader.Read(destination));
         Assert.Equal((float)((0.5 - (channels - 1) * 0.25) / channels), destination[0]);
@@ -47,7 +46,7 @@ public sealed class WavePcmReaderTests
     [Fact]
     public void FloatClipsEachChannelBeforeAveraging()
     {
-        using var reader = new WavePcmReader(new MemoryStream(Wave(Format(3, 32, 2), Floats(100, -0.5f, -100, 0.5f, 0.25f, 0.75f))));
+        using var reader = new DiarizationWaveReader(new MemoryStream(Wave(Format(3, 32, 2), Floats(100, -0.5f, -100, 0.5f, 0.25f, 0.75f))));
         float[] destination = new float[3];
         Assert.Equal(3, reader.Read(destination));
         Assert.Equal(new[] { 0.25f, -0.25f, 0.5f }, destination);
@@ -59,7 +58,7 @@ public sealed class WavePcmReaderTests
     [InlineData(float.NegativeInfinity)]
     public void RejectsNonfiniteFloatAndCannotContinue(float value)
     {
-        using var reader = new WavePcmReader(new MemoryStream(Wave(Format(3, 32), Floats(value, 0))));
+        using var reader = new DiarizationWaveReader(new MemoryStream(Wave(Format(3, 32), Floats(value, 0))));
         Assert.Throws<InvalidDataException>(() => reader.Read(new float[1]));
         Assert.Throws<InvalidOperationException>(() => reader.Read(new float[1]));
     }
@@ -68,7 +67,7 @@ public sealed class WavePcmReaderTests
     public void SequentialReadsRespectDestinationAndDataBoundaries()
     {
         byte[] bytes = Wave(Format(1, 16), Pcm(16, 0, 8192, 16384), ("JUNK", new byte[5]));
-        using var reader = new WavePcmReader(new ShortReadStream(bytes));
+        using var reader = new DiarizationWaveReader(new ShortReadStream(bytes));
         Assert.Equal(0, reader.Read(Span<float>.Empty));
         float[] destination = new float[2];
         Assert.Equal(2, reader.Read(destination));
@@ -84,7 +83,7 @@ public sealed class WavePcmReaderTests
     public void HandlesOddUnknownChunksAndDataBeforeFormat()
     {
         byte[] bytes = Riff(("JUNK", new byte[] { 1, 2, 3 }), ("data", Pcm(8, 128)), ("fmt ", Format(1, 8)), ("LIST", new byte[1]));
-        using var reader = new WavePcmReader(new MemoryStream(bytes));
+        using var reader = new DiarizationWaveReader(new MemoryStream(bytes));
         float[] destination = new float[1];
         Assert.Equal(1, reader.Read(destination));
         Assert.Equal(0f, destination[0]);
@@ -95,7 +94,7 @@ public sealed class WavePcmReaderTests
     [InlineData(96000)]
     public void AcceptsSampleRateBoundaries(int rate)
     {
-        using var reader = new WavePcmReader(new MemoryStream(Wave(Format(1, 16, rate: rate), Pcm(16, 0))));
+        using var reader = new DiarizationWaveReader(new MemoryStream(Wave(Format(1, 16, rate: rate), Pcm(16, 0))));
         Assert.Equal(rate, reader.SampleRate);
     }
 
@@ -130,7 +129,7 @@ public sealed class WavePcmReaderTests
             case "align-overflow": Set16(format, 2, ushort.MaxValue); Set16(format, 14, 32); break;
             case "byte-rate-overflow": Set16(format, 2, 60000); Set16(format, 14, 8); Set16(format, 12, 60000); Set32(format, 4, 96000); break;
         }
-        Assert.Throws<InvalidDataException>(() => new WavePcmReader(new MemoryStream(Wave(format, Pcm(16, 0)))));
+        Assert.Throws<InvalidDataException>(() => new DiarizationWaveReader(new MemoryStream(Wave(format, Pcm(16, 0)))));
     }
 
     [Theory]
@@ -176,7 +175,7 @@ public sealed class WavePcmReaderTests
             case "rifx": bytes[3] = (byte)'X'; break;
             case "rf64": "RF64"u8.CopyTo(bytes); break;
         }
-        Assert.Throws<InvalidDataException>(() => new WavePcmReader(new MemoryStream(bytes)));
+        Assert.Throws<InvalidDataException>(() => new DiarizationWaveReader(new MemoryStream(bytes)));
     }
 
     [Fact]
@@ -184,7 +183,7 @@ public sealed class WavePcmReaderTests
     {
         byte[] bytes = Wave(Format(1, 16), Pcm(16, 0, 1));
         for (int length = 0; length < bytes.Length; length++)
-            Assert.Throws<InvalidDataException>(() => new WavePcmReader(new MemoryStream(bytes[..length])));
+            Assert.Throws<InvalidDataException>(() => new DiarizationWaveReader(new MemoryStream(bytes[..length])));
     }
 
     [Fact]
@@ -192,11 +191,11 @@ public sealed class WavePcmReaderTests
     {
         byte[] bytes = Wave(Format(1, 16), Pcm(16, 0));
         Array.Resize(ref bytes, bytes.Length + 20);
-        using var reader = new WavePcmReader(new MemoryStream(bytes));
+        using var reader = new DiarizationWaveReader(new MemoryStream(bytes));
         Assert.Equal(1, reader.TotalFrames);
         // Moving the RIFF boundary before the data chunk cannot be rescued by trailing bytes.
         Set32(bytes, 4, 28);
-        Assert.Throws<InvalidDataException>(() => new WavePcmReader(new MemoryStream(bytes)));
+        Assert.Throws<InvalidDataException>(() => new DiarizationWaveReader(new MemoryStream(bytes)));
     }
 
     [Theory]
@@ -205,7 +204,7 @@ public sealed class WavePcmReaderTests
     public void DisposesAccordingToOwnership(bool leaveOpen)
     {
         var stream = new MemoryStream(Wave(Format(1, 16), Pcm(16, 0)));
-        var reader = new WavePcmReader(stream, leaveOpen);
+        var reader = new DiarizationWaveReader(stream, leaveOpen);
         reader.Dispose();
         reader.Dispose();
         Assert.Equal(leaveOpen, stream.CanRead);
@@ -219,7 +218,7 @@ public sealed class WavePcmReaderTests
     public void ConstructorFailureRespectsOwnership(bool leaveOpen)
     {
         var stream = new MemoryStream(new byte[1]);
-        Assert.Throws<InvalidDataException>(() => new WavePcmReader(stream, leaveOpen));
+        Assert.Throws<InvalidDataException>(() => new DiarizationWaveReader(stream, leaveOpen));
         Assert.Equal(leaveOpen, stream.CanRead);
         stream.Dispose();
     }
@@ -229,17 +228,17 @@ public sealed class WavePcmReaderTests
     {
         using var disposed = new MemoryStream();
         disposed.Dispose();
-        Assert.Throws<ArgumentException>(() => new WavePcmReader(disposed, true));
+        Assert.Throws<ArgumentException>(() => new DiarizationWaveReader(disposed, true));
         using var unseekable = new UnseekableStream();
-        Assert.Throws<ArgumentException>(() => new WavePcmReader(unseekable, true));
-        Assert.Throws<ArgumentNullException>(() => new WavePcmReader((Stream)null!));
+        Assert.Throws<ArgumentException>(() => new DiarizationWaveReader(unseekable, true));
+        Assert.Throws<ArgumentNullException>(() => new DiarizationWaveReader((Stream)null!));
     }
 
     [Fact]
     public void DetectsDataTruncatedAfterConstruction()
     {
         using var stream = new MemoryStream(Wave(Format(1, 16), Pcm(16, 0, 1)));
-        using var reader = new WavePcmReader(stream, true);
+        using var reader = new DiarizationWaveReader(stream, true);
         stream.SetLength(stream.Length - 1);
         Assert.Throws<InvalidDataException>(() => reader.Read(new float[2]));
         Assert.Throws<InvalidOperationException>(() => reader.Read(new float[1]));
@@ -252,7 +251,7 @@ public sealed class WavePcmReaderTests
         try
         {
             File.WriteAllBytes(path, Wave(Format(1, 16), Pcm(16, 0)));
-            using (var reader = new WavePcmReader(path)) Assert.Equal(1, reader.Read(new float[1]));
+            using (var reader = new DiarizationWaveReader(path)) Assert.Equal(1, reader.Read(new float[1]));
             using var exclusive = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         }
         finally { File.Delete(path); }

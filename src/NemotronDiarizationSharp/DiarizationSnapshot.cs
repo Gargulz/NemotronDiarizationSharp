@@ -62,4 +62,7 @@ public sealed class DiarizationSnapshot
     public DiarizationFrameBatch ToFrameBatch()
         => DiarizationFrameBatch.FromProbabilities(FirstProbabilityFrame, SpeakerCount, SecondsPerFrame,
             _probabilities);
+
+    internal DiarizationSnapshot WithSegments(DiarizationSegment[] segments)
+        => new(FirstProbabilityFrame, FrameCount, SpeakerCount, SecondsPerFrame, _probabilities, segments, IsFinal);
 }

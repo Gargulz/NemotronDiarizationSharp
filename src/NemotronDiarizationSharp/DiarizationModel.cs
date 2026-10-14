@@ -6,12 +6,14 @@ namespace NemotronDiarizationSharp;
 public sealed class DiarizationModel : IDisposable
 {
     private readonly ModelHandle _handle;
+    private readonly DiarizationSegmentationMode _defaultSegmentationMode;
     private readonly object _sync = new();
     private bool _disposed;
 
-    private DiarizationModel(ModelHandle handle)
+    private DiarizationModel(ModelHandle handle, DiarizationSegmentationMode defaultSegmentationMode)
     {
         _handle = handle;
+        _defaultSegmentationMode = defaultSegmentationMode;
         try
         {
             int speakerCount = NativeRuntimeCompatibility.InvokeRequiredEntryPoint(
@@ -43,16 +45,28 @@ public sealed class DiarizationModel : IDisposable
     public static string NativeRuntimeVersion => NativeMethods.GetVersion();
 
     public static DiarizationModel Load(string modelPath)
-        => LoadCore(modelPath, options: null);
+        => LoadCore(modelPath, options: null, DiarizationSegmentationMode.Native);
 
     /// <summary>Loads a model using the requested CPU streaming geometry.</summary>
     public static DiarizationModel Load(string modelPath, DiarizationModelOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return LoadCore(modelPath, options);
+        return LoadCore(modelPath, options, DiarizationSegmentationMode.Native);
     }
 
-    private static DiarizationModel LoadCore(string modelPath, DiarizationModelOptions? options)
+    /// <summary>Loads a model with the published Nemotron 3 offline-style streaming geometry for a completed recording.</summary>
+    /// <remarks>This remains chunked streaming inference; use <see cref="ProcessOffline(ReadOnlySpan{float}, int)"/> for full-attention inference.</remarks>
+    public static DiarizationModel LoadForRecording(string modelPath, DiarizationModelOptions? overrides = null)
+        => LoadCore(modelPath, (overrides ?? new DiarizationModelOptions())
+            .WithDefaultPreset(DiarizationPresets.Nemotron3OfflineStyle), DiarizationSegmentationMode.NvidiaNeMoReference);
+
+    /// <summary>Loads a model with the published 1.04-second Nemotron 3 low-latency geometry for live streaming.</summary>
+    public static DiarizationModel LoadForStreaming(string modelPath, DiarizationModelOptions? overrides = null)
+        => LoadCore(modelPath, (overrides ?? new DiarizationModelOptions())
+            .WithDefaultPreset(DiarizationPresets.Nemotron3LowLatency), DiarizationSegmentationMode.NvidiaNeMoReference);
+
+    private static DiarizationModel LoadCore(string modelPath, DiarizationModelOptions? options,
+        DiarizationSegmentationMode defaultSegmentationMode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
         int gpuDeviceIndex = options?.GetNativeGpuDeviceIndex() ?? -1;
@@ -101,7 +115,7 @@ public sealed class DiarizationModel : IDisposable
             if (model == 0)
                 throw new InvalidOperationException("The native library returned a null model handle.");
 
-            return new DiarizationModel(new ModelHandle(model));
+            return new DiarizationModel(new ModelHandle(model), defaultSegmentationMode);
         }
         finally
         {
@@ -138,7 +152,7 @@ public sealed class DiarizationModel : IDisposable
             var streamHandle = new StreamHandle(stream, _handle);
             stream = 0;
             modelReferenceAdded = false;
-            return new DiarizationStream(streamHandle, SpeakerCount, SecondsPerFrame);
+            return new DiarizationStream(streamHandle, SpeakerCount, SecondsPerFrame, _defaultSegmentationMode);
         }
         finally
         {
@@ -171,7 +185,70 @@ public sealed class DiarizationModel : IDisposable
     /// <param name="sampleRate">Input rate from 8000 to 96000 Hz; the native runtime resamples to the model rate.</param>
     /// <returns>A completed snapshot with probability history beginning at frame zero.</returns>
     public DiarizationSnapshot ProcessOffline(ReadOnlySpan<float> samples, int sampleRate)
-        => ProcessOffline(samples, sampleRate, segmentationOptions: null);
+    {
+        if (_defaultSegmentationMode != DiarizationSegmentationMode.Native)
+            return ProcessOfflineWithResults(samples, sampleRate,
+                new DiarizationResultOptions { SegmentationMode = _defaultSegmentationMode });
+        return ProcessOffline(samples, sampleRate, segmentationOptions: null);
+    }
+
+    /// <summary>Processes one complete input and selects native, managed, or NVIDIA NeMo reference segmentation.</summary>
+    public DiarizationSnapshot ProcessOfflineWithResults(ReadOnlySpan<float> samples, int sampleRate,
+        DiarizationResultOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        options.Validate();
+        DiarizationSnapshot snapshot = ProcessOffline(samples, sampleRate,
+            options.SegmentationMode == DiarizationSegmentationMode.Native ? options.NativeOptions : null);
+        return DiarizationStream.ApplyResultOptions(snapshot, options);
+    }
+
+    /// <summary>Processes a WAV recording incrementally without loading the decoded audio into one array.</summary>
+    /// <param name="wavePath">Path to little-endian RIFF/WAVE PCM 8/16/24/32-bit or IEEE float32 audio.</param>
+    /// <param name="resultOptions">Optional independent segmentation selection.</param>
+    /// <param name="chunkDurationMilliseconds">Decoded audio chunk size; defaults to 250 ms.</param>
+    /// <remarks>
+    /// Completed recording profiles recompute reference or managed segments from all revised probabilities.
+    /// This retains the probability history in managed memory. Native mode returns the native stream result.
+    /// </remarks>
+    public DiarizationSnapshot ProcessWaveFile(string wavePath, DiarizationResultOptions? resultOptions = null,
+        int chunkDurationMilliseconds = 250)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(wavePath);
+        if (chunkDurationMilliseconds <= 0)
+            throw new ArgumentOutOfRangeException(nameof(chunkDurationMilliseconds));
+        DiarizationResultOptions selected = resultOptions ??
+            new DiarizationResultOptions { SegmentationMode = _defaultSegmentationMode };
+        selected.Validate();
+
+        using var reader = new DiarizationWaveReader(wavePath);
+        int bufferSize = Math.Max(1, checked(reader.SampleRate * chunkDurationMilliseconds / 1000));
+        var pcm = new float[bufferSize];
+        using DiarizationStream stream = OpenStream();
+        DiarizationProbabilityHistory? history = selected.SegmentationMode == DiarizationSegmentationMode.Native
+            ? null
+            : new DiarizationProbabilityHistory(maxRetainedFrames: null);
+        while (true)
+        {
+            int frames = reader.Read(pcm);
+            if (frames == 0)
+                break;
+            stream.Push(pcm.AsSpan(0, frames), reader.SampleRate);
+            history?.Apply(stream.ReadResultUpdates());
+        }
+
+        stream.Finish();
+        if (history is null)
+            return stream.GetSnapshot(selected.NativeOptions);
+        history.Apply(stream.ReadResultUpdates());
+        if (!history.IsCompleteFromFrameZero || history.EndFrameExclusive == 0)
+            throw new InvalidOperationException("The complete recording probability history is unavailable.");
+
+        DiarizationFrameBatch framesBatch = history.GetFrames();
+        var snapshot = new DiarizationSnapshot(0, framesBatch.FrameCount, framesBatch.SpeakerCount,
+            framesBatch.SecondsPerFrame, framesBatch.Probabilities.ToArray(), [], isFinal: true);
+        return DiarizationStream.ApplyResultOptions(snapshot, selected);
+    }
 
     /// <summary>Processes one complete input and extracts segments using the supplied settings.</summary>
     public DiarizationSnapshot ProcessOffline(ReadOnlySpan<float> samples, int sampleRate,

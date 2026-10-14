@@ -37,6 +37,30 @@ public sealed class DiarizationModelOptions
     /// <summary>Update period in coarse 80 ms encoder frames; null or nonpositive keeps the preset value.</summary>
     public int? UpdatePeriodFrames { get; init; }
 
+    /// <summary>Creates the published Nemotron 3 offline-style streaming geometry defaults.</summary>
+    public static DiarizationModelOptions ForCompletedRecording() => new()
+    {
+        Preset = DiarizationPresets.Nemotron3OfflineStyle
+    };
+
+    /// <summary>Creates the published Nemotron 3 low-latency live-streaming geometry defaults.</summary>
+    public static DiarizationModelOptions ForLiveStreaming() => new()
+    {
+        Preset = DiarizationPresets.Nemotron3LowLatency
+    };
+
+    internal DiarizationModelOptions WithDefaultPreset(string preset) => new()
+    {
+        GpuDeviceIndex = GpuDeviceIndex,
+        Preset = Preset ?? preset,
+        ChunkFrames = ChunkFrames,
+        RightContextFrames = RightContextFrames,
+        LeftContextFrames = LeftContextFrames,
+        FifoFrames = FifoFrames,
+        SpeakerCacheFrames = SpeakerCacheFrames,
+        UpdatePeriodFrames = UpdatePeriodFrames
+    };
+
     internal int GetNativeGpuDeviceIndex()
     {
         if (GpuDeviceIndex is < 0)
