@@ -6,39 +6,13 @@ internal sealed record SelectedNativeRuntime(DiarizationBackend Backend, string 
 
 internal static class NativeRuntimeManager
 {
-    private static readonly object Gate = new();
-    private static SelectedNativeRuntime? _selected;
+    private static readonly NativeRuntimeSelectionState Selection = new();
 
     internal static DiarizationBackend? SelectedBackend
-    {
-        get { lock (Gate) return _selected?.Backend; }
-    }
+        => Selection.SelectedBackend;
 
     internal static SelectedNativeRuntime EnsureSelected(DiarizationBackend requested, int? requestedDeviceIndex = null)
-    {
-        lock (Gate)
-        {
-            SelectedNativeRuntime candidate = _selected ?? Select(requested);
-            if (_selected is not null && requested != DiarizationBackend.Auto && requested != _selected.Backend)
-                throw new InvalidOperationException(
-                    $"The process native backend is already fixed to {_selected.Backend}; it cannot be switched to {requested}. Start a new process to use another backend.");
-
-            if (candidate.Backend == DiarizationBackend.Cpu && requestedDeviceIndex.HasValue)
-                throw new InvalidOperationException("GpuDeviceIndex requires CUDA, but the process selected the CPU backend.");
-
-            if (candidate.Backend == DiarizationBackend.Cuda)
-            {
-                IReadOnlySet<int> devices = NvidiaDeviceProbe.GetDeviceIndexes();
-                int deviceIndex = requestedDeviceIndex ?? 0;
-                if (!devices.Contains(deviceIndex))
-                    throw new InvalidOperationException(
-                        $"CUDA device index {deviceIndex} is not present in the current nvidia-smi device list.");
-            }
-
-            _selected ??= candidate;
-            return _selected;
-        }
-    }
+        => Selection.EnsureSelected(requested, requestedDeviceIndex, () => Select(requested));
 
     internal static SelectedNativeRuntime Current
         => EnsureSelected(DiarizationBackend.Auto);
@@ -86,7 +60,7 @@ internal static class NativeRuntimeManager
         }
 
         bool isWindowsX64 = OperatingSystem.IsWindows() && Environment.Is64BitProcess;
-        bool nvidiaDeviceReported = requested != DiarizationBackend.Cpu && cudaFiles && isWindowsX64 &&
+        bool nvidiaDeviceReported = requested == DiarizationBackend.Auto && cudaFiles && isWindowsX64 &&
             NvidiaDeviceProbe.TryGetDeviceIndexes(out _);
         if (requested == DiarizationBackend.Cuda)
         {
@@ -133,19 +107,13 @@ internal static class NativeRuntimeManager
 
 internal static class NvidiaDeviceProbe
 {
-    internal static IReadOnlySet<int> GetDeviceIndexes()
-    {
-        if (!TryGetDeviceIndexes(out IReadOnlySet<int> indexes))
-            throw new InvalidOperationException("nvidia-smi could not confirm an available NVIDIA device.");
-        return indexes;
-    }
-
     internal static bool TryGetDeviceIndexes(out IReadOnlySet<int> indexes)
     {
         indexes = new HashSet<int>();
         if (!OperatingSystem.IsWindows()) return false;
         string? path = FindNvidiaSmi();
-        if (path is null) return false;
+        if (path is null) return TryParseProcessResult(executableFound: false, started: false,
+            timedOut: false, exitCode: -1, output: string.Empty, out indexes);
         try
         {
             using var process = new Process
@@ -158,26 +126,52 @@ internal static class NvidiaDeviceProbe
                     CreateNoWindow = true
                 }
             };
-            if (!process.Start()) return false;
+            if (!process.Start()) return TryParseProcessResult(executableFound: true, started: false,
+                timedOut: false, exitCode: -1, output: string.Empty, out indexes);
             Task<string> outputRead = process.StandardOutput.ReadToEndAsync();
             if (!process.WaitForExit(3000))
             {
                 process.Kill(entireProcessTree: true);
-                return false;
+                return TryParseProcessResult(executableFound: true, started: true,
+                    timedOut: true, exitCode: -1, output: string.Empty, out indexes);
             }
-            if (process.ExitCode != 0) return false;
             string output = outputRead.GetAwaiter().GetResult();
-            var parsed = new HashSet<int>();
-            foreach (string line in output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                if (int.TryParse(line, out int index) && index >= 0) parsed.Add(index);
-            if (parsed.Count == 0) return false;
-            indexes = parsed;
-            return true;
+            return TryParseProcessResult(executableFound: true, started: true,
+                timedOut: false, process.ExitCode, output, out indexes);
         }
         catch
         {
+            return TryParseProcessResult(executableFound: true, started: false,
+                timedOut: false, exitCode: -1, output: string.Empty, out indexes);
+        }
+    }
+
+    internal static bool TryParseProcessResult(bool executableFound, bool started, bool timedOut,
+        int exitCode, string output, out IReadOnlySet<int> indexes)
+    {
+        if (!executableFound || !started || timedOut)
+        {
+            indexes = new HashSet<int>();
             return false;
         }
+        return TryParseOutput(exitCode, output, out indexes);
+    }
+
+    internal static bool TryParseOutput(int exitCode, string output, out IReadOnlySet<int> indexes)
+    {
+        indexes = new HashSet<int>();
+        if (exitCode != 0 || string.IsNullOrWhiteSpace(output)) return false;
+
+        var parsed = new HashSet<int>();
+        foreach (string line in output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!int.TryParse(line, out int index) || index < 0) return false;
+            parsed.Add(index);
+        }
+
+        if (parsed.Count == 0) return false;
+        indexes = parsed;
+        return true;
     }
 
     private static string? FindNvidiaSmi()

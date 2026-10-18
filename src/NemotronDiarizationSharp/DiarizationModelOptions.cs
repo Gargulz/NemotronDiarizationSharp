@@ -9,8 +9,9 @@ public sealed class DiarizationModelOptions
     public DiarizationBackend Backend { get; init; } = DiarizationBackend.Auto;
 
     /// <summary>
-    /// CUDA device index to use. Null selects device 0 when CUDA is selected. This setting does
-    /// not select a backend; an explicit index is invalid if Auto selects CPU or Backend is Cpu.
+    /// CUDA logical device ordinal to use. Null selects ordinal 0 when CUDA is selected. This
+    /// setting does not select a backend; an explicit index is invalid if Auto selects CPU or
+    /// Backend is Cpu. CUDA validates the ordinal during model initialization.
     /// </summary>
     public int? GpuDeviceIndex { get; init; }
 
