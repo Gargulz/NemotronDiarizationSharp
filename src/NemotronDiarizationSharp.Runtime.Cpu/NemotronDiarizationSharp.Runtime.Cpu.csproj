@@ -10,6 +10,8 @@
     <PackageId>NemotronDiarizationSharp.Runtime.Cpu</PackageId>
     <Description>Windows x64 CPU runtime assets for NVIDIA NeMo-Speech.cpp v0.2.0, used by the independent NemotronDiarizationSharp wrapper.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>diarization;nemotron;nemo;native;cpu;win-x64</PackageTags>
+    <PackageReleaseNotes>Windows x64 CPU runtime assets. A compatible Visual C++ x64 runtime is required. Native runtime packages have not been published; third-party binary redistribution review remains incomplete. See DISTRIBUTION_STATUS.md.</PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="runtimes\win-x64\native\concrt140.dll" />
@@ -38,5 +40,9 @@
     <None Update="buildTransitive\NemotronDiarizationSharp.Runtime.Cpu.targets" Pack="true" PackagePath="buildTransitive\NemotronDiarizationSharp.Runtime.Cpu.targets" />
     <None Update="licenses\**\*" Pack="true" PackagePath="" />
     <None Update="README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\docs\distribution\DISTRIBUTION_STATUS.md" Pack="true" PackagePath="" />
+    <None Include="..\..\docs\distribution\licenses\DARTS_CLONE_LICENSE.txt" Pack="true" PackagePath="licenses\third_party\darts-clone\LICENSE" />
+    <None Include="..\..\docs\distribution\licenses\GGML_FILE_NOTICES.txt" Pack="true" PackagePath="licenses\third_party\ggml\FILE_NOTICES.txt" />
+    <None Update="cpu-runtime-manifest.json" Pack="true" PackagePath="provenance\cpu-runtime-manifest.json" />
   </ItemGroup>
 </Project>

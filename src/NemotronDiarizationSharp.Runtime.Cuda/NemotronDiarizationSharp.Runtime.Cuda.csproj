@@ -10,6 +10,8 @@
     <PackageId>NemotronDiarizationSharp.Runtime.Cuda</PackageId>
     <Description>Windows x64 CUDA runtime assets for NVIDIA NeMo-Speech.cpp v0.2.0, used by the independent NemotronDiarizationSharp wrapper.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>diarization;nemotron;nemo;native;cuda;win-x64</PackageTags>
+    <PackageReleaseNotes>Windows x64 CUDA runtime assets. NVIDIA and Microsoft components retain separate terms. Native runtime packages have not been published; third-party binary redistribution review remains incomplete. See DISTRIBUTION_STATUS.md.</PackageReleaseNotes>
     <RuntimeSourceDirectory Condition="'$(RuntimeSourceDirectory)' == ''">$(MSBuildThisFileDirectory)..\..\local\runtimes\cuda-v0.2.0</RuntimeSourceDirectory>
     <RuntimeSourceDirectory>$([System.IO.Path]::GetFullPath('$(RuntimeSourceDirectory)'))</RuntimeSourceDirectory>
   </PropertyGroup>
@@ -18,6 +20,11 @@
     <Content Include="$(RuntimeSourceDirectory)\*.dll" Pack="true" PackagePath="runtimes\nemotron\cuda\win-x64\native\" />
     <None Include="buildTransitive\NemotronDiarizationSharp.Runtime.Cuda.targets" Pack="true" PackagePath="buildTransitive\NemotronDiarizationSharp.Runtime.Cuda.targets" />
     <None Update="README.md" Pack="true" PackagePath="README.md" />
+    <None Include="..\NemotronDiarizationSharp.Runtime.Cpu\licenses\**\*" Pack="true" PackagePath="licenses\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="..\..\docs\distribution\licenses\DARTS_CLONE_LICENSE.txt" Pack="true" PackagePath="licenses\third_party\darts-clone\LICENSE" />
+    <None Include="..\..\docs\distribution\licenses\GGML_FILE_NOTICES.txt" Pack="true" PackagePath="licenses\third_party\ggml\FILE_NOTICES.txt" />
+    <None Include="..\..\docs\distribution\licenses\CUDA-12.9.1-EULA.txt" Pack="true" PackagePath="licenses\nvidia\CUDA-12.9.1-EULA.txt" />
+    <None Include="..\..\docs\distribution\DISTRIBUTION_STATUS.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <Target Name="ValidateCudaRuntimeSourceDirectory" BeforeTargets="Pack">

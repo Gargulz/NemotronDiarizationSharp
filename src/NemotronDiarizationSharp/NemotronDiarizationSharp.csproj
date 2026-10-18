@@ -9,8 +9,11 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <Description>Managed .NET 10 SDK for speaker diarization through the NeMo-Speech.cpp C ABI. Applications install a separate CPU or CUDA runtime package; the SDK package contains no native binaries. Auto prefers CUDA when a staged runtime and NVIDIA device are discoverable, otherwise it uses CPU when available. Runtime selection is fixed per process.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>diarization;speaker-diarization;nemotron;nemo;dotnet</PackageTags>
+    <PackageReleaseNotes>Managed SDK package. Inference requires separately obtained compatible native components and a model; applicable third-party redistribution review remains incomplete.</PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\docs\distribution\DISTRIBUTION_STATUS.md" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
