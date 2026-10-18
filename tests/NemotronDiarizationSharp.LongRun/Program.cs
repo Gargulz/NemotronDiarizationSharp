@@ -210,6 +210,7 @@ internal static class Program
         }
 
         processingTimer.Stop();
+        ValidateFinalSnapshotProbabilities(finalSnapshot);
         stream.Dispose();
         model.Dispose();
         PrintSample(finalSnapshot, (double)producedSamples / DefaultSampleRate,
@@ -283,9 +284,48 @@ internal static class Program
             throw new InvalidOperationException("Batch probability count does not match frame-major dimensions.");
         foreach (float probability in batch.Probabilities)
         {
-            if (!float.IsFinite(probability))
-                throw new InvalidOperationException("Batch contains a non-finite probability.");
+            if (!float.IsFinite(probability) || probability < 0 || probability > 1)
+                throw new InvalidOperationException($"Batch contains a probability outside finite [0, 1]: {probability}.");
         }
+    }
+
+    private static void ValidateFinalSnapshotProbabilities(DiarizationSnapshot snapshot)
+    {
+        long count = 0;
+        float minimum = float.PositiveInfinity;
+        float maximum = float.NegativeInfinity;
+        bool valid = true;
+
+        for (long frame = snapshot.FirstProbabilityFrame; frame < snapshot.FrameCount; frame++)
+        {
+            for (int speaker = 0; speaker < snapshot.SpeakerCount; speaker++)
+            {
+                float probability = snapshot.GetProbability(frame, speaker);
+                count++;
+                if (!float.IsFinite(probability))
+                {
+                    valid = false;
+                    continue;
+                }
+
+                minimum = Math.Min(minimum, probability);
+                maximum = Math.Max(maximum, probability);
+                if (probability < 0 || probability > 1)
+                    valid = false;
+            }
+        }
+
+        string minimumText = count > 0 && minimum != float.PositiveInfinity
+            ? minimum.ToString("R", CultureInfo.InvariantCulture)
+            : "n/a";
+        string maximumText = count > 0 && maximum != float.NegativeInfinity
+            ? maximum.ToString("R", CultureInfo.InvariantCulture)
+            : "n/a";
+        Console.WriteLine($"FINAL_PROBABILITY_SCAN count={count} min={minimumText} max={maximumText} " +
+                          $"range=finite_[0,1] status={(valid ? "PASS" : "FAIL")}");
+
+        if (!valid)
+            throw new InvalidOperationException("Final snapshot contains a probability outside finite [0, 1].");
     }
 
     private static void ValidateEmptyRead(DiarizationFrameBatch batch, long expectedNextFrame, string phase)
@@ -475,9 +515,7 @@ internal static class Program
 
             if (chunk > 30)
                 throw new ArgumentOutOfRangeException(nameof(args), "Chunk duration must not exceed 30 seconds.");
-            if (duration > maxRuntime)
-                throw new ArgumentException("Target duration must not exceed the wall-clock runtime limit.");
-
+            // Target duration is logical audio time, while max runtime is elapsed wall-clock time.
             return new RunOptions
             {
                 DurationMinutes = duration,
