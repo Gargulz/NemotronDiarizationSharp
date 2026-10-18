@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <Description>Managed .NET 10 SDK for speaker diarization through the NeMo-Speech.cpp C ABI. Applications must separately deploy and explicitly select a compatible CPU or CUDA native runtime; this package contains no native binaries. Backend and platform validation are separate, and the SDK does not automatically fall back between backends.</Description>
+    <Description>Managed .NET 10 SDK for speaker diarization through the NeMo-Speech.cpp C ABI. Applications install a separate CPU or CUDA runtime package; the SDK package contains no native binaries. Auto prefers CUDA when a staged runtime and NVIDIA device are discoverable, otherwise it uses CPU when available. Runtime selection is fixed per process.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>

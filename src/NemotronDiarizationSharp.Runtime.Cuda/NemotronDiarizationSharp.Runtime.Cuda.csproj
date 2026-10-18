@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>NemotronDiarizationSharp.Runtime.Cuda</AssemblyName>
+    <RootNamespace>NemotronDiarizationSharp.Runtime.Cuda</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>NemotronDiarizationSharp.Runtime.Cuda</PackageId>
+    <Description>Windows x64 CUDA runtime assets for NVIDIA NeMo-Speech.cpp v0.2.0, used by the independent NemotronDiarizationSharp wrapper.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RuntimeSourceDirectory Condition="'$(RuntimeSourceDirectory)' == ''">$(MSBuildThisFileDirectory)..\..\local\runtimes\cuda-v0.2.0</RuntimeSourceDirectory>
+    <RuntimeSourceDirectory>$([System.IO.Path]::GetFullPath('$(RuntimeSourceDirectory)'))</RuntimeSourceDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="$(RuntimeSourceDirectory)\*.dll" Pack="true" PackagePath="runtimes\nemotron\cuda\win-x64\native\" />
+    <None Include="buildTransitive\NemotronDiarizationSharp.Runtime.Cuda.targets" Pack="true" PackagePath="buildTransitive\NemotronDiarizationSharp.Runtime.Cuda.targets" />
+    <None Update="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+
+  <Target Name="ValidateCudaRuntimeSourceDirectory" BeforeTargets="Pack">
+    <Error Condition="!$([System.IO.Path]::IsPathFullyQualified('$(RuntimeSourceDirectory)'))"
+           Text="RuntimeSourceDirectory must be an absolute directory. Set -p:RuntimeSourceDirectory=&lt;absolute path to the staged CUDA DLLs&gt;." />
+    <Error Condition="!Exists('$(RuntimeSourceDirectory)\nemo_speech_asr_c.dll')"
+           Text="RuntimeSourceDirectory '$(RuntimeSourceDirectory)' does not contain nemo_speech_asr_c.dll." />
+    <Error Condition="'@(Content->Count())' == '0'"
+           Text="RuntimeSourceDirectory '$(RuntimeSourceDirectory)' does not contain any CUDA runtime DLLs." />
+  </Target>
+</Project>

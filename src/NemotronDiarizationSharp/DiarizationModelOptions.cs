@@ -2,12 +2,15 @@ using NemotronDiarizationSharp.Native;
 
 namespace NemotronDiarizationSharp;
 
-/// <summary>Optional device and streaming geometry passed to the native model constructor.</summary>
+/// <summary>Backend, optional CUDA device, and streaming geometry passed to model initialization.</summary>
 public sealed class DiarizationModelOptions
 {
+    /// <summary>Backend selection. Auto is GPU preferred and is the default.</summary>
+    public DiarizationBackend Backend { get; init; } = DiarizationBackend.Auto;
+
     /// <summary>
-    /// CUDA device index to use. Null selects CPU. A nonnegative value explicitly selects that
-    /// GPU and requires a CUDA-enabled native runtime; the SDK does not fall back to CPU.
+    /// CUDA device index to use. Null selects device 0 when CUDA is selected. This setting does
+    /// not select a backend; an explicit index is invalid if Auto selects CPU or Backend is Cpu.
     /// </summary>
     public int? GpuDeviceIndex { get; init; }
 
@@ -51,6 +54,7 @@ public sealed class DiarizationModelOptions
 
     internal DiarizationModelOptions WithDefaultPreset(string preset) => new()
     {
+        Backend = Backend,
         GpuDeviceIndex = GpuDeviceIndex,
         Preset = Preset ?? preset,
         ChunkFrames = ChunkFrames,
@@ -61,13 +65,31 @@ public sealed class DiarizationModelOptions
         UpdatePeriodFrames = UpdatePeriodFrames
     };
 
-    internal int GetNativeGpuDeviceIndex()
+    internal int GetNativeGpuDeviceIndex(DiarizationBackend selectedBackend)
     {
         if (GpuDeviceIndex is < 0)
             throw new ArgumentOutOfRangeException(nameof(GpuDeviceIndex), GpuDeviceIndex,
-                "GPU device indexes must be nonnegative; use null to select CPU.");
+                "GPU device indexes must be nonnegative.");
 
-        return GpuDeviceIndex ?? -1;
+        if (selectedBackend == DiarizationBackend.Cpu)
+        {
+            if (GpuDeviceIndex.HasValue)
+                throw new InvalidOperationException("GpuDeviceIndex requires the CUDA backend; Backend=Cpu cannot use a GPU device index.");
+            return -1;
+        }
+
+        return GpuDeviceIndex ?? 0;
+    }
+
+    internal void ValidateBackendOptions()
+    {
+        if (!Enum.IsDefined(Backend))
+            throw new ArgumentOutOfRangeException(nameof(Backend), Backend, "Unknown diarization backend.");
+        if (GpuDeviceIndex is < 0)
+            throw new ArgumentOutOfRangeException(nameof(GpuDeviceIndex), GpuDeviceIndex,
+                "GPU device indexes must be nonnegative.");
+        if (Backend == DiarizationBackend.Cpu && GpuDeviceIndex.HasValue)
+            throw new InvalidOperationException("GpuDeviceIndex requires the CUDA backend; Backend=Cpu cannot use a GPU device index.");
     }
 
     internal string? GetNativePreset()

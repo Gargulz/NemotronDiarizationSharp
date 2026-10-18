@@ -10,10 +10,11 @@ public sealed class DocumentationExamplesTests
     {
         DiarizationModelOptions options = CreateStreamingOptions();
         Assert.Equal(DiarizationPresets.V3Streaming, options.Preset);
+        Assert.Equal(DiarizationBackend.Auto, options.Backend);
         Assert.Null(options.GpuDeviceIndex);
         Assert.Null(options.ChunkFrames);
         Assert.Equal(0, options.LeftContextFrames);
-        Assert.Equal(-1, options.GetNativeGpuDeviceIndex());
+        Assert.Equal(-1, options.GetNativeGpuDeviceIndex(DiarizationBackend.Cpu));
         options.ValidateGeometryArithmetic();
         var native = new DiarModelConfig();
         options.ApplyNativeOverrides(ref native);
@@ -266,7 +267,7 @@ public sealed class DocumentationExamplesTests
         Environment.SetEnvironmentVariable("NEMOTONDIARIZATIONSHARP_NATIVE_DIR",
             Path.GetFullPath(nativeRuntimeDirectory));
         using var model = DiarizationModel.Load(Path.GetFullPath(modelPath),
-            new DiarizationModelOptions { GpuDeviceIndex = null });
+            new DiarizationModelOptions { Backend = DiarizationBackend.Cpu });
         DiarizationSnapshot result = model.ProcessOffline(monoPcm, sampleRate);
 
         if (result.FrameCount > 0)

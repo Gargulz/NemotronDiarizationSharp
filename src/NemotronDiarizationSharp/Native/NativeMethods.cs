@@ -6,7 +6,6 @@ namespace NemotronDiarizationSharp.Native;
 internal static class NativeMethods
 {
     private const string LibraryName = "nemo_speech_asr_c";
-    private static readonly NativeRuntimeSelectionCache RuntimeSelection = new(SelectRuntime);
     private static readonly Lazy<nint> RuntimeHandle = new(LoadSelectedRuntime, LazyThreadSafetyMode.ExecutionAndPublication);
 
     static NativeMethods()
@@ -84,26 +83,20 @@ internal static class NativeMethods
 
     private static nint LoadSelectedRuntime()
     {
-        NativeRuntimeSelection selection = RuntimeSelection.Value;
-        if (selection.Source == NativeRuntimeSource.OperatingSystem)
-            return 0;
-
-        if (selection.IsExplicit && OperatingSystem.IsWindows())
+        SelectedNativeRuntime selection = NativeRuntimeManager.Current;
+        DllImportSearchPath searchPath = DllImportSearchPath.UseDllDirectoryForDependencies |
+            DllImportSearchPath.System32;
+        try
         {
-            DllImportSearchPath explicitSearchPath = DllImportSearchPath.UseDllDirectoryForDependencies |
-                DllImportSearchPath.System32;
-            return NativeLibrary.Load(selection.LibraryPath!, typeof(NativeMethods).Assembly, explicitSearchPath);
+            return NativeLibrary.Load(selection.LibraryPath, typeof(NativeMethods).Assembly, searchPath);
         }
-
-        return NativeLibrary.Load(selection.LibraryPath!);
+        catch (Exception exception) when (exception is DllNotFoundException or BadImageFormatException)
+        {
+            throw new InvalidOperationException(
+                $"Could not load the selected {selection.Backend} native runtime from '{selection.Directory}'. " +
+                "The process will not try another backend because native loading may have partially changed process state.", exception);
+        }
     }
-
-    private static NativeRuntimeSelection SelectRuntime() => NativeRuntimeSelectionResolver.Select(
-        Environment.GetEnvironmentVariable(NativeRuntimeSelectionResolver.PrimaryEnvironmentVariable),
-        Environment.GetEnvironmentVariable(NativeRuntimeSelectionResolver.LegacyEnvironmentVariable),
-        AppContext.BaseDirectory,
-        Directory.Exists,
-        File.Exists);
 }
 
 internal enum NativeStatus

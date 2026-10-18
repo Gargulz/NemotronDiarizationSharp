@@ -1,0 +1,10 @@
+<Project>
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\nemotron\cuda\win-x64\native\nemo_speech_asr_c.dll')">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\nemotron\cuda\win-x64\native\**\*">
+      <Link>runtimes\nemotron\cuda\win-x64\native\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
+</Project>

@@ -532,14 +532,14 @@ public sealed class ManagedBehaviorTests
     }
 
     [Theory]
-    [InlineData(null, -1)]
+    [InlineData(null, 0)]
     [InlineData(0, 0)]
     [InlineData(1, 1)]
     public void ModelOptionsMapGpuSelectionWithoutCheckingHardware(int? requestedIndex, int nativeIndex)
     {
         var options = new DiarizationModelOptions { GpuDeviceIndex = requestedIndex };
 
-        Assert.Equal(nativeIndex, options.GetNativeGpuDeviceIndex());
+        Assert.Equal(nativeIndex, options.GetNativeGpuDeviceIndex(DiarizationBackend.Cuda));
     }
 
     [Fact]
@@ -547,8 +547,25 @@ public sealed class ManagedBehaviorTests
     {
         var options = new DiarizationModelOptions { GpuDeviceIndex = -1 };
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => options.GetNativeGpuDeviceIndex());
-        Assert.Equal(-1, new DiarizationModelOptions().GetNativeGpuDeviceIndex());
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.GetNativeGpuDeviceIndex(DiarizationBackend.Cuda));
+        Assert.Equal(0, new DiarizationModelOptions().GetNativeGpuDeviceIndex(DiarizationBackend.Cuda));
+        Assert.Equal(-1, new DiarizationModelOptions { Backend = DiarizationBackend.Cpu }
+            .GetNativeGpuDeviceIndex(DiarizationBackend.Cpu));
+    }
+
+    [Fact]
+    public void BackendIsAutoByDefaultAndExplicitCpuRejectsGpuIndex()
+    {
+        var defaults = new DiarizationModelOptions();
+        Assert.Equal(DiarizationBackend.Auto, defaults.Backend);
+        defaults.ValidateBackendOptions();
+
+        var invalid = new DiarizationModelOptions
+        {
+            Backend = DiarizationBackend.Cpu,
+            GpuDeviceIndex = 0
+        };
+        Assert.Throws<InvalidOperationException>(invalid.ValidateBackendOptions);
     }
 
     [Fact]

@@ -37,7 +37,7 @@ public sealed class JsonConfigurationTests
 
         Assert.Equal(2, configuration.ModelOptions.GpuDeviceIndex);
         Assert.Equal("v3-streaming", configuration.ModelOptions.Preset);
-        Assert.Equal(2, configuration.ModelOptions.GetNativeGpuDeviceIndex());
+        Assert.Equal(2, configuration.ModelOptions.GetNativeGpuDeviceIndex(DiarizationBackend.Cuda));
         var model = new DiarModelConfig();
         configuration.ModelOptions.ApplyNativeOverrides(ref model);
         Assert.Equal(17, model.ChunkFrames);
@@ -102,7 +102,7 @@ public sealed class JsonConfigurationTests
         foreach (string property in ModelProperties)
             Assert.Null(GetScalar(configuration, "modelOptions", property));
 
-        Assert.Equal(-1, configuration.ModelOptions.GetNativeGpuDeviceIndex());
+        Assert.Equal(0, configuration.ModelOptions.GetNativeGpuDeviceIndex(DiarizationBackend.Cuda));
         var native = new DiarModelConfig();
         configuration.ModelOptions.ApplyNativeOverrides(ref native);
         Assert.Equal(0, native.ChunkFrames);

@@ -81,6 +81,10 @@ public sealed class PublicApiContractTests
             Assert.Null(property.GetValue(modelOptions));
         }
 
+        PropertyInfo backend = modelOptionsType.GetProperty("Backend")!;
+        Assert.Equal(PublicType(sdk, "DiarizationBackend"), backend.PropertyType);
+        Assert.Equal(Enum.Parse(backend.PropertyType, "Auto"), backend.GetValue(modelOptions));
+
         Type segmentationType = PublicType(sdk, "DiarizationSegmentationOptions");
         object segmentation = Activator.CreateInstance(segmentationType)!;
         foreach (PropertyInfo property in segmentationType.GetProperties(BindingFlags.Instance | BindingFlags.Public))

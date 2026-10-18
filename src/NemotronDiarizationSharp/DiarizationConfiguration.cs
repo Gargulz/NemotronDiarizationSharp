@@ -47,11 +47,11 @@ public sealed class DiarizationConfiguration
 
         try
         {
-            modelOptions.GetNativeGpuDeviceIndex();
+            modelOptions.ValidateBackendOptions();
             modelOptions.ValidateGeometryArithmetic();
             parsed.SegmentationOptions?.ToNativeConfig();
         }
-        catch (ArgumentException exception)
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
             throw new JsonException("Invalid diarization configuration: " + exception.Message, exception);
         }

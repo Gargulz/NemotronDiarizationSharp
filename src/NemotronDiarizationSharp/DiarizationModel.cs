@@ -43,11 +43,13 @@ public sealed class DiarizationModel : IDisposable
     public int SpeakerCount { get; }
     public double SecondsPerFrame { get; }
     public static string NativeRuntimeVersion => NativeMethods.GetVersion();
+    /// <summary>The backend fixed for this process after first native initialization, or null before initialization.</summary>
+    public static DiarizationBackend? SelectedBackend => NativeRuntimeManager.SelectedBackend;
 
     public static DiarizationModel Load(string modelPath)
         => LoadCore(modelPath, options: null, DiarizationSegmentationMode.Native);
 
-    /// <summary>Loads a model using the requested CPU streaming geometry.</summary>
+    /// <summary>Loads a model using the requested backend and optional streaming geometry.</summary>
     public static DiarizationModel Load(string modelPath, DiarizationModelOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -69,18 +71,22 @@ public sealed class DiarizationModel : IDisposable
         DiarizationSegmentationMode defaultSegmentationMode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
-        int gpuDeviceIndex = options?.GetNativeGpuDeviceIndex() ?? -1;
-        options?.ValidateGeometryArithmetic();
+        options ??= new DiarizationModelOptions();
+        options.ValidateBackendOptions();
+        options.ValidateGeometryArithmetic();
         string fullPath = Path.GetFullPath(modelPath);
         if (!File.Exists(fullPath))
             throw new FileNotFoundException("The diarization model file was not found.", fullPath);
+
+        SelectedNativeRuntime selectedRuntime = NativeRuntimeManager.EnsureSelected(options.Backend, options.GpuDeviceIndex);
+        int gpuDeviceIndex = options.GetNativeGpuDeviceIndex(selectedRuntime.Backend);
 
         nint utf8Path = 0;
         nint utf8Preset = 0;
         try
         {
             utf8Path = Marshal.StringToCoTaskMemUTF8(fullPath);
-            string? nativePreset = options?.GetNativePreset();
+            string? nativePreset = options.GetNativePreset();
             if (nativePreset is not null)
                 utf8Preset = Marshal.StringToCoTaskMemUTF8(nativePreset);
 
@@ -92,8 +98,7 @@ public sealed class DiarizationModel : IDisposable
                 Preset = utf8Preset,
                 LeftContextFrames = -1
             };
-            if (options is not null)
-                options.ApplyNativeOverrides(ref config);
+            options.ApplyNativeOverrides(ref config);
 
             NativeRuntimeCompatibility.EnsureCompatible();
 
