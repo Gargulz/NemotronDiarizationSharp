@@ -46,8 +46,8 @@ public sealed class DocumentationExamplesTests
     }
 
     [Theory]
-    [InlineData("README.md")]
-    [InlineData("README.ru.md")]
+    [InlineData("docs/en/sdk-guide.md")]
+    [InlineData("docs/ru/sdk-guide.md")]
     public void ConsumerExampleMatchesCompiledPublicApiMethod(string readme)
     {
         string root = FindRepositoryRoot();
@@ -63,10 +63,10 @@ public sealed class DocumentationExamplesTests
     }
 
     [Theory]
-    [InlineData("README.md", "preset-options")]
-    [InlineData("README.ru.md", "preset-options")]
-    [InlineData("README.md", "json-configuration")]
-    [InlineData("README.ru.md", "json-configuration")]
+    [InlineData("docs/en/sdk-guide.md", "preset-options")]
+    [InlineData("docs/ru/sdk-guide.md", "preset-options")]
+    [InlineData("docs/en/sdk-guide.md", "json-configuration")]
+    [InlineData("docs/ru/sdk-guide.md", "json-configuration")]
     public void ReadmeExamplesMatchTheNormallyCompiledMethods(string readme, string example)
     {
         string root = FindRepositoryRoot();
@@ -81,12 +81,12 @@ public sealed class DocumentationExamplesTests
     }
 
     [Theory]
-    [InlineData("README.md", "revision-polling")]
-    [InlineData("README.ru.md", "revision-polling")]
-    [InlineData("README.md", "synthetic-postprocessing")]
-    [InlineData("README.ru.md", "synthetic-postprocessing")]
-    [InlineData("README.md", "async-results")]
-    [InlineData("README.ru.md", "async-results")]
+    [InlineData("docs/en/sdk-guide.md", "revision-polling")]
+    [InlineData("docs/ru/sdk-guide.md", "revision-polling")]
+    [InlineData("docs/en/sdk-guide.md", "synthetic-postprocessing")]
+    [InlineData("docs/ru/sdk-guide.md", "synthetic-postprocessing")]
+    [InlineData("docs/en/sdk-guide.md", "async-results")]
+    [InlineData("docs/ru/sdk-guide.md", "async-results")]
     public void RevisionAwareReadmeExamplesMatchTheNormallyCompiledMethods(string readme, string example)
     {
         string root = FindRepositoryRoot();

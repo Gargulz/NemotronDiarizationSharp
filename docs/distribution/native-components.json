@@ -1,0 +1,801 @@
+{
+    "schemaVersion":  1,
+    "observedDate":  "2026-10-18",
+    "scope":  "Derived summary of eighteen historically observed Windows x64 CPU/CUDA native components. This is not a current package manifest or a reproduction of historical package identities.",
+    "sourceInventorySha256":  "7ACC10A775EEA9CBD3AA0AB89C18D3955DC3984787AF8AAF93FB17EF4D790DC0",
+    "upstream":  {
+                     "project":  "NVIDIA NeMo-Speech.cpp",
+                     "version":  "0.2.0",
+                     "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4",
+                     "sourceReferenceLimit":  "Pinned source reference, not an authenticated binary build receipt.",
+                     "cpuArchive":  "nemo-speech-0.2.0-windows-x86_64-cpu.zip",
+                     "cpuArchiveSha256":  "82C80451086E86194ABA9AF19F800DA77CD66D1C28D993D0EFCEFFD6CDB49BB8"
+                 },
+    "limitations":  [
+                        "The complete original audit, including immutable historical package identities and original nuspecs, is retained privately. Those package archive records are intentionally absent from this derived summary.",
+                        "Resource versions and publisher strings are unauthenticated metadata.",
+                        "Hash identity and import tables do not establish complete static or dynamic composition or redistribution rights.",
+                        "Native runtime redistribution review remains incomplete; model weights are external."
+                    ],
+    "details":  [
+                    "native-provenance.md",
+                    "upstream-licenses.md",
+                    "vendor-redistribution.md"
+                ],
+    "components":  [
+                       {
+                           "fileName":  "ggml.dll",
+                           "backend":  "cpu",
+                           "recordedAssetPath":  "runtimes/nemotron/cpu/win-x64/native/ggml.dll",
+                           "sizeBytes":  61952,
+                           "sha256":  "25DFA47637EBC9B92D9A34FC72B897800D88877DABB2E95A5B3DF6D43FA99F6F",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-locale-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "ggml-base.dll",
+                                                 "ggml-cpu.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress",
+                                                           "LoadLibraryW"
+                                                       ],
+                           "knownDynamicDependencies":  "Backend loader APIs exist; configuration-specific use and exact optional dynamic closure UNKNOWN",
+                           "sourceArtifact":  "nemo-speech-0.2.0-windows-x86_64-cpu.zip",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "NOT_AVAILABLE",
+                           "archiveIdentity":  "SHA256_MATCH_TO_RECORDED_RELEASE_ZIP_ENTRY",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "UNKNOWN: no upstream build receipt or compiler/linker inputs",
+                           "licenseTerms":  "ggml MIT; native build/source modifications and CUDA dependencies as applicable; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "ggml MIT copyright and permission text",
+                                                   "Applicable NeMo integration and CUDA component notices; see upstream-licenses.md and vendor-redistribution.md"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "ggml-base.dll",
+                           "backend":  "cpu",
+                           "recordedAssetPath":  "runtimes/nemotron/cpu/win-x64/native/ggml-base.dll",
+                           "sizeBytes":  680960,
+                           "sha256":  "460AFAA830B390ADD25AC11EE4F247BA2EA99368D337D068A5D84158E737F923",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-math-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "api-ms-win-crt-time-l1-1-0.dll",
+                                                 "api-ms-win-crt-utility-l1-1-0.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "VCOMP140.DLL",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "nemo-speech-0.2.0-windows-x86_64-cpu.zip",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "NOT_AVAILABLE",
+                           "archiveIdentity":  "SHA256_MATCH_TO_RECORDED_RELEASE_ZIP_ENTRY",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "UNKNOWN: no upstream build receipt or compiler/linker inputs",
+                           "licenseTerms":  "ggml MIT; native build/source modifications and CUDA dependencies as applicable; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "ggml MIT copyright and permission text",
+                                                   "Applicable NeMo integration and CUDA component notices; see upstream-licenses.md and vendor-redistribution.md"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "ggml-cpu.dll",
+                           "backend":  "cpu",
+                           "recordedAssetPath":  "runtimes/nemotron/cpu/win-x64/native/ggml-cpu.dll",
+                           "sizeBytes":  946688,
+                           "sha256":  "F090417018AB0B87420CB81A56DB9D44AE5E6750ECFE36AA38F58863A0CC52E2",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "ADVAPI32.dll",
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-math-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "ggml-base.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "VCOMP140.DLL",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "nemo-speech-0.2.0-windows-x86_64-cpu.zip",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "NOT_AVAILABLE",
+                           "archiveIdentity":  "SHA256_MATCH_TO_RECORDED_RELEASE_ZIP_ENTRY",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "UNKNOWN: no upstream build receipt or compiler/linker inputs",
+                           "licenseTerms":  "ggml MIT; native build/source modifications and CUDA dependencies as applicable; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "ggml MIT copyright and permission text",
+                                                   "Applicable NeMo integration and CUDA component notices; see upstream-licenses.md and vendor-redistribution.md"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "nemo_speech_asr.dll",
+                           "backend":  "cpu",
+                           "recordedAssetPath":  "runtimes/nemotron/cpu/win-x64/native/nemo_speech_asr.dll",
+                           "sizeBytes":  4192256,
+                           "sha256":  "F7129DC212C4D353FB76279E10244FED92C4F7814E80E408C51777A6045F11BE",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-filesystem-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-math-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "dbghelp.dll",
+                                                 "ggml-base.dll",
+                                                 "ggml.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "nemo-speech-0.2.0-windows-x86_64-cpu.zip",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "NOT_AVAILABLE",
+                           "archiveIdentity":  "SHA256_MATCH_TO_RECORDED_RELEASE_ZIP_ENTRY",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "UNKNOWN: no upstream build receipt or compiler/linker inputs",
+                           "licenseTerms":  "NeMo-Speech.cpp Apache-2.0 plus statically linked third parties; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "NeMo-Speech.cpp Apache-2.0 LICENSE and NOTICE",
+                                                   "Applicable SentencePiece/Darts-clone/Abseil/protobuf/utf8-range supplemental licenses and attribution; exact linked composition remains unverified"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "nemo_speech_asr_c.dll",
+                           "backend":  "cpu",
+                           "recordedAssetPath":  "runtimes/nemotron/cpu/win-x64/native/nemo_speech_asr_c.dll",
+                           "sizeBytes":  56320,
+                           "sha256":  "9F6390224BF8D9C7A81830507EC9D937277BEB079C9F0BDEE15BD0F25B11A7F5",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "nemo_speech_asr.dll",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "nemo-speech-0.2.0-windows-x86_64-cpu.zip",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "NOT_AVAILABLE",
+                           "archiveIdentity":  "SHA256_MATCH_TO_RECORDED_RELEASE_ZIP_ENTRY",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "UNKNOWN: no upstream build receipt or compiler/linker inputs",
+                           "licenseTerms":  "NeMo-Speech.cpp Apache-2.0 plus statically linked third parties; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "NeMo-Speech.cpp Apache-2.0 LICENSE and NOTICE",
+                                                   "Applicable SentencePiece/Darts-clone/Abseil/protobuf/utf8-range supplemental licenses and attribution; exact linked composition remains unverified"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "cublas64_12.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/cublas64_12.dll",
+                           "sizeBytes":  102518272,
+                           "sha256":  "90052A83EFD1B57A8E3616A6590B335855F81B814A4F16EECB7B5BF6D1B1D4EB",
+                           "observedFileVersion":  "6,14,11,1291",
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "cublasLt64_12.dll",
+                                                 "KERNEL32.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress",
+                                                           "LoadLibraryExA",
+                                                           "LoadLibraryExW",
+                                                           "LoadLibraryW"
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  null,
+                           "buildProvenance":  "Installed source path/hash verified when available; installer/authenticated build receipt UNKNOWN",
+                           "licenseTerms":  "CUDA 12.9 EULA / relevant component supplement; see vendor-redistribution.md",
+                           "requiredNotices":  "Applicable vendor agreement/supplement and copyright notices; exact conditions documented in vendor-redistribution.md",
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "cublasLt64_12.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/cublasLt64_12.dll",
+                           "sizeBytes":  668669952,
+                           "sha256":  "C3A05EA244C937314AFEC09F87B91F814C7E27977681F6C67EB51BB06CED3A4A",
+                           "observedFileVersion":  "6,14,11,1291",
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "KERNEL32.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress",
+                                                           "LoadLibraryA",
+                                                           "LoadLibraryExA",
+                                                           "LoadLibraryExW",
+                                                           "LoadLibraryW"
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  null,
+                           "buildProvenance":  "Installed source path/hash verified when available; installer/authenticated build receipt UNKNOWN",
+                           "licenseTerms":  "CUDA 12.9 EULA / relevant component supplement; see vendor-redistribution.md",
+                           "requiredNotices":  "Applicable vendor agreement/supplement and copyright notices; exact conditions documented in vendor-redistribution.md",
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "cudart64_12.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/cudart64_12.dll",
+                           "sizeBytes":  583680,
+                           "sha256":  "760C38928BBE5759F7B31ED6692599EB7EC83CEDD5702E84C2B72028A89837E1",
+                           "observedFileVersion":  "6,14,11,12090",
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-core-console-l1-1-0.dll",
+                                                 "api-ms-win-core-debug-l1-1-0.dll",
+                                                 "api-ms-win-core-errorhandling-l1-1-0.dll",
+                                                 "api-ms-win-core-file-l1-1-0.dll",
+                                                 "api-ms-win-core-handle-l1-1-0.dll",
+                                                 "api-ms-win-core-heap-l1-1-0.dll",
+                                                 "api-ms-win-core-interlocked-l1-1-0.dll",
+                                                 "api-ms-win-core-libraryloader-l1-2-0.dll",
+                                                 "api-ms-win-core-localization-l1-2-0.dll",
+                                                 "api-ms-win-core-processenvironment-l1-1-0.dll",
+                                                 "api-ms-win-core-processthreads-l1-1-0.dll",
+                                                 "api-ms-win-core-processthreads-l1-1-1.dll",
+                                                 "api-ms-win-core-profile-l1-1-0.dll",
+                                                 "api-ms-win-core-rtlsupport-l1-1-0.dll",
+                                                 "api-ms-win-core-string-l1-1-0.dll",
+                                                 "api-ms-win-core-synch-l1-1-0.dll",
+                                                 "api-ms-win-core-sysinfo-l1-1-0.dll",
+                                                 "api-ms-win-security-systemfunctions-l1-1-0.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress",
+                                                           "LoadLibraryExA",
+                                                           "LoadLibraryExW"
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  null,
+                           "buildProvenance":  "Installed source path/hash verified when available; installer/authenticated build receipt UNKNOWN",
+                           "licenseTerms":  "CUDA 12.9 EULA / relevant component supplement; see vendor-redistribution.md",
+                           "requiredNotices":  "Applicable vendor agreement/supplement and copyright notices; exact conditions documented in vendor-redistribution.md",
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "ggml.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/ggml.dll",
+                           "sizeBytes":  61952,
+                           "sha256":  "3648C7F2F358F327D2C8D2A4854F020B7DFE1BAD5260AFF6D532C7938E43AAEB",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-locale-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "ggml-base.dll",
+                                                 "ggml-cpu.dll",
+                                                 "ggml-cuda.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress",
+                                                           "LoadLibraryW"
+                                                       ],
+                           "knownDynamicDependencies":  "Backend loader APIs exist; configuration-specific use and exact optional dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "Local CMake/Ninja configuration and source/link inputs available; source-file match verified; complete emitted-object composition/reproducible build UNKNOWN",
+                           "licenseTerms":  "ggml MIT; native build/source modifications and CUDA dependencies as applicable; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "ggml MIT copyright and permission text",
+                                                   "Applicable NeMo integration and CUDA component notices; see upstream-licenses.md and vendor-redistribution.md"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "ggml-base.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/ggml-base.dll",
+                           "sizeBytes":  680960,
+                           "sha256":  "427C434FDBC3F9F8A697C333B940DD1EACC85D4A4D13BF5496ECBC3C7F177EF8",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-math-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "api-ms-win-crt-time-l1-1-0.dll",
+                                                 "api-ms-win-crt-utility-l1-1-0.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "VCOMP140.DLL",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "Local CMake/Ninja configuration and source/link inputs available; source-file match verified; complete emitted-object composition/reproducible build UNKNOWN",
+                           "licenseTerms":  "ggml MIT; native build/source modifications and CUDA dependencies as applicable; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "ggml MIT copyright and permission text",
+                                                   "Applicable NeMo integration and CUDA component notices; see upstream-licenses.md and vendor-redistribution.md"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "ggml-cpu.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/ggml-cpu.dll",
+                           "sizeBytes":  1052672,
+                           "sha256":  "B942B9F3E37905A0355F6B118FD506E6969E636354EFF82691335146E87A65B6",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "ADVAPI32.dll",
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-math-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "ggml-base.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "VCOMP140.DLL",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "Local CMake/Ninja configuration and source/link inputs available; source-file match verified; complete emitted-object composition/reproducible build UNKNOWN",
+                           "licenseTerms":  "ggml MIT; native build/source modifications and CUDA dependencies as applicable; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "ggml MIT copyright and permission text",
+                                                   "Applicable NeMo integration and CUDA component notices; see upstream-licenses.md and vendor-redistribution.md"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "ggml-cuda.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/ggml-cuda.dll",
+                           "sizeBytes":  51753472,
+                           "sha256":  "D28232E4C4489AC1B9E37ACD70B4F064C3AAB0AB21B2539359918E6E6EA0B756",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-math-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "cublas64_12.dll",
+                                                 "cudart64_12.dll",
+                                                 "ggml-base.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "nvcuda.dll",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress",
+                                                           "LoadLibraryW"
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "Local CMake/Ninja configuration and source/link inputs available; source-file match verified; complete emitted-object composition/reproducible build UNKNOWN",
+                           "licenseTerms":  "ggml MIT; native build/source modifications and CUDA dependencies as applicable; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "ggml MIT copyright and permission text",
+                                                   "Applicable NeMo integration and CUDA component notices; see upstream-licenses.md and vendor-redistribution.md"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "msvcp140.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/msvcp140.dll",
+                           "sizeBytes":  643512,
+                           "sha256":  "7C26614E1D733892C2DEAC7E245CE115504B1D80592DD0A01B08E3E5A55F89CA",
+                           "observedFileVersion":  "14.51.36247.0",
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-filesystem-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-locale-l1-1-0.dll",
+                                                 "api-ms-win-crt-math-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "api-ms-win-crt-time-l1-1-0.dll",
+                                                 "api-ms-win-crt-utility-l1-1-0.dll",
+                                                 "KERNEL32.dll",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress"
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  null,
+                           "buildProvenance":  "Installed source path/hash verified when available; installer/authenticated build receipt UNKNOWN",
+                           "licenseTerms":  "Microsoft Visual Studio redistribution terms and matching REDIST list; see vendor-redistribution.md",
+                           "requiredNotices":  "Applicable vendor agreement/supplement and copyright notices; exact conditions documented in vendor-redistribution.md",
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "nemo_speech_asr.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/nemo_speech_asr.dll",
+                           "sizeBytes":  4218368,
+                           "sha256":  "861BD97823B860A68BF5D209B763A7E63306F362C8BE76BEFC6770C8EE651E81",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-environment-l1-1-0.dll",
+                                                 "api-ms-win-crt-filesystem-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-math-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "dbghelp.dll",
+                                                 "ggml-base.dll",
+                                                 "ggml.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress",
+                                                           "LoadLibraryW"
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "Local CMake/Ninja configuration and source/link inputs available; source-file match verified; complete emitted-object composition/reproducible build UNKNOWN",
+                           "licenseTerms":  "NeMo-Speech.cpp Apache-2.0 plus statically linked third parties; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "NeMo-Speech.cpp Apache-2.0 LICENSE and NOTICE",
+                                                   "Applicable SentencePiece/Darts-clone/Abseil/protobuf/utf8-range supplemental licenses and attribution; exact linked composition remains unverified"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "nemo_speech_asr_c.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/nemo_speech_asr_c.dll",
+                           "sizeBytes":  55808,
+                           "sha256":  "54F2ADD01DCF59486633EE7E4B933180532F75A31B68266851D2C71939D99BEB",
+                           "observedFileVersion":  null,
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "KERNEL32.dll",
+                                                 "MSVCP140.dll",
+                                                 "nemo_speech_asr.dll",
+                                                 "VCRUNTIME140.dll",
+                                                 "VCRUNTIME140_1.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  "6a3ca369370782acee0dd155e34394ba60b920c4 (pinned source reference; not an authenticated build receipt)",
+                           "buildProvenance":  "Local CMake/Ninja configuration and source/link inputs available; source-file match verified; complete emitted-object composition/reproducible build UNKNOWN",
+                           "licenseTerms":  "NeMo-Speech.cpp Apache-2.0 plus statically linked third parties; see upstream-licenses.md",
+                           "requiredNotices":  [
+                                                   "NeMo-Speech.cpp Apache-2.0 LICENSE and NOTICE",
+                                                   "Applicable SentencePiece/Darts-clone/Abseil/protobuf/utf8-range supplemental licenses and attribution; exact linked composition remains unverified"
+                                               ],
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "vcomp140.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/vcomp140.dll",
+                           "sizeBytes":  193152,
+                           "sha256":  "55ABA23CDCD6484FBB06F4155B8CA75ADFCE7A881F10AFD0C49457165E677164",
+                           "observedFileVersion":  "14.44.35211.0",
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "KERNEL32.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "GetProcAddress",
+                                                           "LoadLibraryExW"
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  null,
+                           "buildProvenance":  "Installed source path/hash verified when available; installer/authenticated build receipt UNKNOWN",
+                           "licenseTerms":  "Microsoft Visual Studio redistribution terms and matching REDIST list; see vendor-redistribution.md",
+                           "requiredNotices":  "Applicable vendor agreement/supplement and copyright notices; exact conditions documented in vendor-redistribution.md",
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "vcruntime140.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/vcruntime140.dll",
+                           "sizeBytes":  178616,
+                           "sha256":  "D1F4225DF2CD877DBF130D5668A021DCE3F94118455FF5EC952061C30AFC9CE7",
+                           "observedFileVersion":  "14.51.36247.0",
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-convert-l1-1-0.dll",
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-stdio-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "KERNEL32.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+                                                           "LoadLibraryExW"
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  null,
+                           "buildProvenance":  "Installed source path/hash verified when available; installer/authenticated build receipt UNKNOWN",
+                           "licenseTerms":  "Microsoft Visual Studio redistribution terms and matching REDIST list; see vendor-redistribution.md",
+                           "requiredNotices":  "Applicable vendor agreement/supplement and copyright notices; exact conditions documented in vendor-redistribution.md",
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       },
+                       {
+                           "fileName":  "vcruntime140_1.dll",
+                           "backend":  "cuda",
+                           "recordedAssetPath":  "runtimes/nemotron/cuda/win-x64/native/vcruntime140_1.dll",
+                           "sizeBytes":  50112,
+                           "sha256":  "A7146C08F89FE5B04541AB507CDB59FF7B44534D4BA3C668A426C6450A03434E",
+                           "observedFileVersion":  "14.51.36247.0",
+                           "peMachine":  "0x8664",
+                           "staticImports":  [
+                                                 "api-ms-win-crt-heap-l1-1-0.dll",
+                                                 "api-ms-win-crt-runtime-l1-1-0.dll",
+                                                 "api-ms-win-crt-string-l1-1-0.dll",
+                                                 "KERNEL32.dll",
+                                                 "VCRUNTIME140.dll"
+                                             ],
+                           "delayImports":  [
+
+                                            ],
+                           "dynamicLoadingFunctions":  [
+
+                                                       ],
+                           "knownDynamicDependencies":  "No additional exact dynamically loaded filename established by this inspection; complete internal dynamic closure UNKNOWN",
+                           "sourceArtifact":  "Local build output or installed vendor redistributable, as recorded by staging manifest",
+                           "stagedIdentity":  "SHA256_MATCH",
+                           "sourceFileIdentity":  "SHA256_MATCH",
+                           "archiveIdentity":  "NOT_APPLICABLE_LOCAL_BUILD_OR_VENDOR_INSTALLATION",
+                           "sourceCommitReference":  null,
+                           "buildProvenance":  "Installed source path/hash verified when available; installer/authenticated build receipt UNKNOWN",
+                           "licenseTerms":  "Microsoft Visual Studio redistribution terms and matching REDIST list; see vendor-redistribution.md",
+                           "requiredNotices":  "Applicable vendor agreement/supplement and copyright notices; exact conditions documented in vendor-redistribution.md",
+                           "uncertainties":  [
+                                                 "No legal clearance follows from a file/hash/version-resource match",
+                                                 "Exact complete static/dynamic composition remains unverified; consult native-provenance.md"
+                                             ]
+                       }
+                   ]
+}

@@ -9,7 +9,9 @@ $documentationFiles = @(
     'README.md',
     'README.ru.md',
     'docs/en/overview.md',
-    'docs/ru/overview.md'
+    'docs/ru/overview.md',
+    'docs/en/sdk-guide.md',
+    'docs/ru/sdk-guide.md'
 )
 $exampleMarkerPattern = '^<!-- compile-example: ([a-z0-9-]+); scaffold=([a-z0-9-]+) -->$'
 $examples = [System.Collections.Generic.List[object]]::new()
@@ -52,6 +54,11 @@ foreach ($relativePath in $documentationFiles) {
         }
 
         if ($lines[$index] -cmatch '^```csharp\s*$') {
+            $precedingLine = if ($index -gt 0) { $lines[$index - 1] } else { '' }
+            if ($precedingLine -cmatch '^<!-- sdk-example: [a-z0-9-]+ -->$') {
+                # Compiled-method synchronization tests own these examples.
+                continue
+            }
             throw "Unmarked C# code fence in $relativePath at line $($index + 1). Add a compile-example marker."
         }
     }
@@ -89,6 +96,10 @@ try {
         $generatedSource.Add('    {')
 
         switch ($example.Scaffold) {
+            'recording' {
+                $prelude = @()
+                $epilogue = @()
+            }
             'offline' {
                 $prelude = @()
                 $epilogue = @('static float[] LoadMonoFloat32Pcm() => Array.Empty<float>();')

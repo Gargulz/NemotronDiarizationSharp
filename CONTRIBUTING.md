@@ -12,7 +12,19 @@ Use concise Conventional Commit subjects, for example `docs: clarify verified ru
 
 Open a pull request with the motivation, scope, relevant design decisions, and user-visible impact. Link related issues, call out compatibility or licensing implications, and identify any behavior that remains unverified. Changes require maintainer review before merging.
 
-For code contributions, run the relevant checks and include the exact commands and results. The current verification commands are `dotnet build NemotronDiarizationSharp.slnx -c Release` and `dotnet test NemotronDiarizationSharp.slnx -c Release`. Do not claim Linux runtime support or other unverified capabilities without evidence from those environments and pinned upstream inputs.
+## Validation
+
+From the repository root with the .NET 10 SDK, run the following managed checks:
+
+```powershell
+dotnet build src/NemotronDiarizationSharp/NemotronDiarizationSharp.csproj -c Release -m:1
+dotnet test tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj -c Release -m:1 --filter "FullyQualifiedName!~WindowsNativeInferenceTests"
+dotnet test tests/NemotronDiarizationSharp.Evaluation.Tests/NemotronDiarizationSharp.Evaluation.Tests.csproj -c Release -m:1
+dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj -c Release -m:1 --filter "FullyQualifiedName!~ExplicitNativeIntegrationTests" -- xUnit.Explicit=off
+dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj -c Release -m:1 --filter "FullyQualifiedName~PublicApiContractTests" -- xUnit.Explicit=off
+```
+
+Native inference tests and explicit native integration tests require separately supplied compatible runtimes, models and audio fixtures. The managed commands exclude those tests; report native results separately. Do not claim Linux or broad GPU support from managed checks.
 
 ## Main branch and releases
 
