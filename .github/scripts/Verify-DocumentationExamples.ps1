@@ -173,7 +173,7 @@ try {
     [System.IO.File]::WriteAllText($generatedProjectPath, $generatedProject, $utf8WithoutBom)
     [System.IO.File]::WriteAllLines($generatedSourcePath, $generatedSource, $utf8WithoutBom)
 
-    & dotnet build $generatedProjectPath --configuration Release --verbosity minimal
+    & dotnet build $generatedProjectPath --configuration Release --verbosity minimal -m:1
     $buildExitCode = $LASTEXITCODE
     if ($buildExitCode -ne 0) {
         throw "Documentation example compilation failed with exit code $buildExitCode. Compiler diagnostics map to the source Markdown file and line above."

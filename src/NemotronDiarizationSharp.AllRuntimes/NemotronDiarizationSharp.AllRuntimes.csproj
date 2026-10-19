@@ -12,13 +12,23 @@
     <!-- A dependency-only metapackage intentionally has no compile-time assembly. -->
     <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
-  <ItemGroup>
+  <!--
+    Ordinary solution restore/build must not depend on unpublished packages.
+    Enable these package references only for the separate aggregation-package workflow.
+  -->
+  <ItemGroup Condition="'$(EnableAllRuntimesPackageDependencies)' == 'true'">
     <None Update="README.md" Pack="true" PackagePath="README.md" />
     <None Include="..\..\docs\distribution\DISTRIBUTION_STATUS.md" Pack="true" PackagePath="" />
     <PackageReference Include="NemotronDiarizationSharp" Version="$(Version)" />
     <PackageReference Include="NemotronDiarizationSharp.Runtime.Cpu" Version="$(Version)" />
     <PackageReference Include="NemotronDiarizationSharp.Runtime.Cuda" Version="$(Version)" />
   </ItemGroup>
+
+  <Target Name="ValidateAllRuntimesPackageDependencies" BeforeTargets="_GetPackageFiles">
+    <Error Condition="'$(EnableAllRuntimesPackageDependencies)' != 'true'"
+           Text="Packing AllRuntimes requires -p:EnableAllRuntimesPackageDependencies=true and a package source containing the matching SDK, CPU runtime, and CUDA runtime packages." />
+  </Target>
+
   <Target Name="KeepAllRuntimesAsMetaPackage" BeforeTargets="_GetPackageFiles">
     <ItemGroup>
       <Content Remove="@(Content)" />

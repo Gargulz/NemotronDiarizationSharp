@@ -33,29 +33,29 @@ jobs:
         run: ./.github/scripts/Verify-CpuRuntimeAllowlist.ps1 -Mode Metadata
 
       - name: Restore solution
-        run: dotnet restore NemotronDiarizationSharp.slnx --verbosity minimal
+        run: dotnet restore NemotronDiarizationSharp.slnx --verbosity minimal -m:1
         timeout-minutes: 10
 
       - name: Build solution (Release)
-        run: dotnet build NemotronDiarizationSharp.slnx --configuration Release --no-restore --verbosity minimal
+        run: dotnet build NemotronDiarizationSharp.slnx --configuration Release --no-restore --verbosity minimal -m:1
         timeout-minutes: 15
 
       - name: Compile documented C# examples
         run: ./.github/scripts/Verify-DocumentationExamples.ps1
         timeout-minutes: 10
 
-      - name: Run unit tests (native inference skips without inputs)
-        run: dotnet test tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj --configuration Release --no-build --no-restore
+      - name: Run managed unit tests (native inference requires external assets)
+        run: dotnet test tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj --configuration Release --no-build --no-restore -m:1 --filter "FullyQualifiedName!~WindowsNativeInferenceTests"
         timeout-minutes: 5
 
       - name: Run evaluation tests
-        run: dotnet test tests/NemotronDiarizationSharp.Evaluation.Tests/NemotronDiarizationSharp.Evaluation.Tests.csproj --configuration Release --no-build --no-restore
+        run: dotnet test tests/NemotronDiarizationSharp.Evaluation.Tests/NemotronDiarizationSharp.Evaluation.Tests.csproj --configuration Release --no-build --no-restore -m:1
         timeout-minutes: 5
 
       - name: Run ordinary integration tests
-        run: dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj --configuration Release --no-build --no-restore --filter "FullyQualifiedName!~ExplicitNativeIntegrationTests" -- xUnit.Explicit=off
+        run: dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj --configuration Release --no-build --no-restore -m:1 --filter "FullyQualifiedName!~ExplicitNativeIntegrationTests" -- xUnit.Explicit=off
         timeout-minutes: 5
 
       - name: Run public API contract tests
-        run: dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj --configuration Release --no-build --no-restore --filter "FullyQualifiedName~PublicApiContractTests" -- xUnit.Explicit=off
+        run: dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj --configuration Release --no-build --no-restore -m:1 --filter "FullyQualifiedName~PublicApiContractTests" -- xUnit.Explicit=off
         timeout-minutes: 5

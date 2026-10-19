@@ -24,6 +24,7 @@ $originalInventory = @(
     'nemo_speech_nmt.dll', 'nemo_speech_nmt_c.dll', 'nemo_speech_tts.dll',
     'vcomp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll'
 )
+$expectedPackagePath = 'runtimes\nemotron\cpu\win-x64\native'
 
 function Assert-Allowlist([bool] $Condition, [string] $Message) {
     if (-not $Condition) { throw "CPU runtime allowlist validation failed: $Message" }
@@ -100,7 +101,7 @@ try {
             $isNativeDll = $isDll -and (
                 ((Normalize-Path $identity) -match '(^|[\\/])runtimes[\\/]win-x64[\\/]native[\\/].*\.dll$') -or
                 ((Normalize-Path $fullPath) -match '[\\/]runtimes[\\/]win-x64[\\/]native[\\/].*\.dll$') -or
-                ($packagePath -ceq 'runtimes\win-x64\native') -or
+                ($packagePath -ceq $expectedPackagePath) -or
                 ((Get-ItemMetadata $item 'Pack') -ceq 'true') -or
                 -not [string]::IsNullOrWhiteSpace((Get-ItemMetadata $item 'CopyToOutputDirectory')) -or
                 -not [string]::IsNullOrWhiteSpace((Get-ItemMetadata $item 'CopyToPublishDirectory'))
@@ -124,11 +125,19 @@ try {
 
     foreach ($item in $nativeItems) {
         $packagePath = Normalize-Path (Get-ItemMetadata $item 'PackagePath')
-        Assert-Allowlist ($packagePath -ceq 'runtimes\win-x64\native') "Unexpected package path '$(Get-ItemMetadata $item 'PackagePath')' for '$($item.Identity)'."
+        Assert-Allowlist ($packagePath -ceq $expectedPackagePath) "Unexpected package path '$(Get-ItemMetadata $item 'PackagePath')' for '$($item.Identity)'; expected '$expectedPackagePath'."
         Assert-Allowlist ((Get-ItemMetadata $item 'Pack') -ceq 'true') "Native item '$($item.Identity)' is not marked for package inclusion."
-        Assert-Allowlist ((Get-ItemMetadata $item 'CopyToOutputDirectory') -ceq 'PreserveNewest') "Native item '$($item.Identity)' does not preserve output-copy behavior."
-        Assert-Allowlist ((Get-ItemMetadata $item 'CopyToPublishDirectory') -ceq 'PreserveNewest') "Native item '$($item.Identity)' does not preserve publish-copy behavior."
     }
+
+    $transitiveTargetsPath = Join-Path ([IO.Path]::GetDirectoryName($projectFullPath)) 'buildTransitive\NemotronDiarizationSharp.Runtime.Cpu.targets'
+    Assert-Allowlist ([IO.File]::Exists($transitiveTargetsPath)) "CPU runtime buildTransitive target not found: $transitiveTargetsPath"
+    [xml]$transitiveTargetsXml = [IO.File]::ReadAllText($transitiveTargetsPath, [Text.Encoding]::UTF8)
+    $copyContent = $transitiveTargetsXml.SelectSingleNode('/Project/ItemGroup/Content')
+    Assert-Allowlist ($null -ne $copyContent) 'The CPU runtime buildTransitive target must include its native content.'
+    $copyInclude = Normalize-Path ([string]$copyContent.GetAttribute('Include'))
+    Assert-Allowlist ($copyInclude.Contains($expectedPackagePath)) "CPU runtime buildTransitive target points outside '$expectedPackagePath': '$copyInclude'."
+    Assert-Allowlist (([string]$copyContent.CopyToOutputDirectory) -ceq 'PreserveNewest') 'The CPU runtime buildTransitive target must preserve output-copy behavior.'
+    Assert-Allowlist (([string]$copyContent.CopyToPublishDirectory) -ceq 'PreserveNewest') 'The CPU runtime buildTransitive target must preserve publish-copy behavior.'
 
     Write-Output 'PASS: metadata allowlist validation; exact five evaluated native Content items, no native DLL wildcard or duplicate, expected package/output metadata, and all 18 original manifest entries present.'
     Write-Output 'Evaluated pack metadata only. No .nupkg was created or inspected; actual package contents remain unverified.'

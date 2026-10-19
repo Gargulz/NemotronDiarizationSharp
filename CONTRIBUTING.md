@@ -17,11 +17,12 @@ Open a pull request with the motivation, scope, relevant design decisions, and u
 From the repository root with the .NET 10 SDK, run the following managed checks:
 
 ```powershell
-dotnet build src/NemotronDiarizationSharp/NemotronDiarizationSharp.csproj -c Release -m:1
-dotnet test tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj -c Release -m:1 --filter "FullyQualifiedName!~WindowsNativeInferenceTests"
-dotnet test tests/NemotronDiarizationSharp.Evaluation.Tests/NemotronDiarizationSharp.Evaluation.Tests.csproj -c Release -m:1
-dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj -c Release -m:1 --filter "FullyQualifiedName!~ExplicitNativeIntegrationTests" -- xUnit.Explicit=off
-dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj -c Release -m:1 --filter "FullyQualifiedName~PublicApiContractTests" -- xUnit.Explicit=off
+dotnet restore NemotronDiarizationSharp.slnx -m:1
+dotnet build NemotronDiarizationSharp.slnx -c Release --no-restore -m:1
+dotnet test tests/NemotronDiarizationSharp.Tests/NemotronDiarizationSharp.Tests.csproj -c Release --no-build --no-restore -m:1 --filter "FullyQualifiedName!~WindowsNativeInferenceTests"
+dotnet test tests/NemotronDiarizationSharp.Evaluation.Tests/NemotronDiarizationSharp.Evaluation.Tests.csproj -c Release --no-build --no-restore -m:1
+dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj -c Release --no-build --no-restore -m:1 --filter "FullyQualifiedName!~ExplicitNativeIntegrationTests" -- xUnit.Explicit=off
+dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarizationSharp.Integration.Tests.csproj -c Release --no-build --no-restore -m:1 --filter "FullyQualifiedName~PublicApiContractTests" -- xUnit.Explicit=off
 ```
 
 Native inference tests and explicit native integration tests require separately supplied compatible runtimes, models and audio fixtures. The managed commands exclude those tests; report native results separately. Do not claim Linux or broad GPU support from managed checks.
