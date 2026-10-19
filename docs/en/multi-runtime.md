@@ -1,6 +1,6 @@
 # Multiple native runtimes
 
-NemotronDiarizationSharp uses NeMo-Speech.cpp's native C API. Build the managed SDK from source and provide a compatible native runtime directory and GGUF model separately. NuGet packages have not been published.
+NemotronDiarizationSharp uses NeMo-Speech.cpp's native C API. The managed SDK `0.1.0-preview.1` package is a managed-only prerelease candidate; its native runtime and GGUF model must be supplied separately. The CPU, CUDA, and AllRuntimes package projects are local development projects and are not available from NuGet.
 
 ## Default backend selection
 
@@ -26,25 +26,25 @@ using var stream = model.OpenStream();
 // Push float32 PCM samples, finish the stream, and read the result.
 ```
 
-For a first run, follow the source-reference and explicit CPU runtime setup in the repository README. AllRuntimes describes a separate local aggregation package, not an available public installation. CUDA requires a compatible NVIDIA GPU and driver; CPU requires a compatible Visual C++ x64 runtime including OpenMP. The SDK does not download native files or GGUF model weights.
+For a first run, install the managed SDK prerelease after it is published, then supply a compatible native runtime and model independently. The local AllRuntimes project is not an installable package. CUDA requires a compatible NVIDIA GPU and driver; CPU requires a compatible Visual C++ x64 runtime including OpenMP. The SDK does not download native files or GGUF model weights.
 
 Use DiarizationBackend.Cpu or DiarizationBackend.Cuda in DiarizationModelOptions to require one backend. LoadForRecording loads the recording profile; call ProcessWaveFile to decode and process a WAV. LoadForStreaming loads the live profile; open a stream, supply PCM chunks, and call Finish. Both profiles use NVIDIA Reference segmentation by default; backend selection does not alter it.
 
 ## Runtime packages
 
 - `NemotronDiarizationSharp` contains the managed API and no native binaries.
-- `NemotronDiarizationSharp.Runtime.Cpu` carries the CPU native closure.
-- `NemotronDiarizationSharp.Runtime.Cuda` carries the CUDA native closure.
-- `NemotronDiarizationSharp.AllRuntimes` is a convenience metapackage depending on all three packages.
+- The local `NemotronDiarizationSharp.Runtime.Cpu` project describes a CPU native closure.
+- The local `NemotronDiarizationSharp.Runtime.Cuda` project describes a CUDA native closure.
+- The local `NemotronDiarizationSharp.AllRuntimes` project describes an optional metapackage depending on the three package IDs.
 
-The runtime packages place assets under distinct output folders:
+The local package projects are configured to place assets under distinct output folders:
 
 ```text
 runtimes/nemotron/cpu/win-x64/native/
 runtimes/nemotron/cuda/win-x64/native/
 ```
 
-Standalone .NET 10 consumers were restored and published with CPU, CUDA, both packages, and AllRuntimes from a local feed. Module inspection confirmed the CPU and CUDA copies of the colliding DLL names load from their own folders. The validated runtime scope is Windows x64; Linux x64 remains unverified.
+Standalone .NET 10 consumers were restored and published from a local feed for earlier technical validation of the CPU, CUDA, combined, and AllRuntimes package layouts. These local results do not make the native packages available from NuGet. Module inspection confirmed the CPU and CUDA copies of the colliding DLL names load from their own folders. The validated runtime scope is Windows x64; Linux x64 remains unverified.
 
 CUDA needs a compatible NVIDIA GPU and driver plus the dependencies expected by the staged CUDA runtime. The native execution tests completed recording and streaming on an NVIDIA GPU. Native scheduler diagnostics reported a `CUDA0` compute buffer, while the process supervisor correctly records direct kernel execution as unknown; this is not a guarantee for other GPUs or drivers.
 

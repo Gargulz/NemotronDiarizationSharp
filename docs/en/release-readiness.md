@@ -1,6 +1,6 @@
 # Release readiness
 
-The managed SDK source has an MIT license. No NuGet packages have been published; native runtime redistribution review remains incomplete. The MIT license applies only to original project-owned SDK material; each third-party component retains its own license, notice, and distribution conditions.
+The managed SDK package candidate is `NemotronDiarizationSharp` version `0.1.0-preview.1`. It is managed-only and must be built and validated locally before a separately authorized publication. No package has been published as part of this preparation. Native runtime redistribution review remains incomplete. The MIT license applies only to original project-owned SDK material; each third-party component retains its own license, notice, and distribution conditions.
 
 ## Verified scope
 
@@ -12,12 +12,14 @@ The managed SDK package contains no native DLLs and requires an application to p
 
 | Package | Contents | Status |
 |---|---|---|
-| `NemotronDiarizationSharp` | Managed `net10.0` SDK, README, distribution status, and MIT license. No native files. | MIT applies to original project-owned SDK source. No managed SDK package has been published. |
-| `NemotronDiarizationSharp.Runtime.Cpu` | Five Windows x64 engine DLLs and applicable notices. | Not published; complete binary provenance, dependency and notice coverage, and redistribution review remain incomplete. An external Microsoft Visual C++ x64 runtime, including OpenMP, is required. |
-| `NemotronDiarizationSharp.Runtime.Cuda` | Thirteen Windows x64 engine, CUDA/cuBLAS, and Microsoft runtime DLLs with applicable notices. | Not published; emitted-component provenance and review of NVIDIA and Microsoft redistribution conditions remain incomplete. |
-| `NemotronDiarizationSharp.AllRuntimes` | Dependency-only package referencing the SDK and both native runtime packages. | Not published; distribution requires satisfying both CPU and CUDA package conditions. |
+| `NemotronDiarizationSharp` | Managed `net10.0` SDK, README, distribution status, and MIT license. No native files or model. | `0.1.0-preview.1` local prerelease candidate; publication is not authorized by this task. |
+| `NemotronDiarizationSharp.Runtime.Cpu` | Local development project for five Windows x64 engine DLLs and applicable notices. | Not part of the managed prerelease and not available from NuGet. Complete binary provenance, dependency and notice coverage, and redistribution review remain incomplete. An external Microsoft Visual C++ x64 runtime, including OpenMP, is required. |
+| `NemotronDiarizationSharp.Runtime.Cuda` | Local development project for thirteen Windows x64 engine, CUDA/cuBLAS, and Microsoft runtime DLLs with applicable notices. | Not part of the managed prerelease and not available from NuGet. Emitted-component provenance and review of NVIDIA and Microsoft redistribution conditions remain incomplete. |
+| `NemotronDiarizationSharp.AllRuntimes` | Local dependency-only project for the SDK and both native runtime package IDs. | Not part of the managed prerelease and not available from NuGet. Distribution requires satisfying both CPU and CUDA package conditions. |
 
-Do not treat a successful package build or consumer restore as legal clearance. The runtime build targets copy DLLs but do not copy their license materials into application output. Any separately authorized runtime distribution must include applicable notices and satisfy the underlying terms. Third-party components and native binaries are not relicensed under the SDK's MIT license.
+The managed package metadata points to the public GitHub repository. Its companion `.snupkg` carries portable debug symbols with Source Link data. The `.nupkg` contains no dependency on the local CPU, CUDA, or AllRuntimes projects. The presence of package projects in this repository does not make them installable dependencies.
+
+Do not treat a successful package build or consumer restore as legal clearance. The local runtime project targets copy DLLs but do not copy their license materials into application output. Any separately authorized runtime distribution must include applicable notices and satisfy the underlying terms. Third-party components and native binaries are not relicensed under the SDK's MIT license.
 
 ## Evidence
 
@@ -28,3 +30,10 @@ Do not treat a successful package build or consumer restore as legal clearance. 
 - [Vendor redistribution evidence](../distribution/vendor-redistribution.md) records the NVIDIA and Microsoft conditions requiring review.
 
 Clean-machine, cross-platform, and broad GPU compatibility claims require separate technical evidence even after redistribution rights are established.
+
+## Before publishing the first preview
+
+1. Review and accept the exact locally validated source commit and its release notes.
+2. Confirm the `.nupkg` is `NemotronDiarizationSharp.0.1.0-preview.1.nupkg`, contains only the managed SDK and intended documentation/license files, and has the expected repository, license, version, and Source Link metadata.
+3. Publish only that managed package after separate HUMAN authorization. Do not publish CPU, CUDA, or AllRuntimes packages until their provenance and redistribution gates are cleared.
+4. Verify the published package can be restored into a clean .NET 10 project, then update package availability wording with the actual public URL.
