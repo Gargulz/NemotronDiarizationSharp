@@ -27,6 +27,8 @@ dotnet test tests/NemotronDiarizationSharp.Integration.Tests/NemotronDiarization
 
 Native inference tests and explicit native integration tests require separately supplied compatible runtimes, models and audio fixtures. The managed commands exclude those tests; report native results separately. Do not claim Linux or broad GPU support from managed checks.
 
+Runtime package production is a separate operation requiring staged native DLLs and the package-specific provenance and license checks. The `AllRuntimes` aggregation package also requires matching SDK, CPU runtime, and CUDA runtime packages in an approved package source; it is not part of ordinary managed restore/build. See its [packaging guidance](src/NemotronDiarizationSharp.AllRuntimes/README.md). Package restore or creation does not establish redistribution rights.
+
 ## Main branch and releases
 
 When hosted on a forge, protect `main`, require review and applicable CI checks, and disallow force pushes. Release tags, NuGet packages, and public release artifacts require explicit maintainer approval. Do not publish credentials, model weights, recordings, build outputs, or package artifacts in pull requests.
