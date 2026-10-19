@@ -1,18 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Version>1.0.0</Version>
+    <Version>0.1.0-preview.1</Version>
     <AssemblyName>NemotronDiarizationSharp</AssemblyName>
     <RootNamespace>NemotronDiarizationSharp</RootNamespace>
+    <Authors>Gargulz</Authors>
+    <Company>Gargulz</Company>
     <Copyright>Copyright (c) 2026 Gargulz</Copyright>
+    <PackageProjectUrl>https://github.com/Gargulz/NemotronDiarizationSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Gargulz/NemotronDiarizationSharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <ContinuousIntegrationBuild Condition="'$(Configuration)' == 'Release'">true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <Description>Managed .NET 10 SDK for speaker diarization through the NeMo-Speech.cpp C ABI. Applications install a separate CPU or CUDA runtime package; the SDK package contains no native binaries. Auto prefers CUDA when a staged runtime and NVIDIA device are discoverable, otherwise it uses CPU when available. Runtime selection is fixed per process.</Description>
+    <Description>Managed .NET 10 SDK for speaker diarization through the NeMo-Speech.cpp C ABI. Applications must obtain a compatible native runtime and model separately; this package contains no native binaries. Auto prefers CUDA when a staged runtime and NVIDIA device are discoverable, otherwise it uses CPU when available. Runtime selection is fixed per process.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>diarization;speaker-diarization;nemotron;nemo;dotnet</PackageTags>
-    <PackageReleaseNotes>MIT applies to original project-owned SDK source. Inference requires separately obtained compatible native components and a model, each subject to its own terms.</PackageReleaseNotes>
+    <PackageReleaseNotes>Managed-only preview. MIT applies to original project-owned SDK source. Inference requires separately obtained compatible native components and a model, each subject to its own terms. Native runtime packages are not part of this release.</PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="" />

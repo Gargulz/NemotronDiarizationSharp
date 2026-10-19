@@ -89,7 +89,7 @@ internal static class NativeRuntimeManager
         => new(backend, Path.GetFullPath(directory), Path.GetFullPath(Path.Combine(directory, NativeRuntimeSettings.EntryLibraryFileName)));
 
     private static InvalidOperationException MissingRuntime(string backend)
-        => new($"No usable {backend} native runtime was found. Install the matching NemotronDiarizationSharp.Runtime package for this application.");
+        => new($"No usable {backend} native runtime was found. Stage compatible native binaries in the application runtime directory or set {NativeRuntimeSettings.PrimaryEnvironmentVariable} to an absolute runtime directory.");
 
     internal static DiarizationBackend ChooseAutoBackend(bool cudaRuntimePresent, bool isWindowsX64,
         bool nvidiaDeviceReported, bool cpuRuntimePresent)
