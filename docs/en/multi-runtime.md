@@ -1,6 +1,6 @@
 # Multiple native runtimes
 
-NemotronDiarizationSharp uses NeMo-Speech.cpp's native C API. The managed SDK `0.1.0-preview.1` package is a managed-only prerelease candidate; its native runtime and GGUF model must be supplied separately. The CPU, CUDA, and AllRuntimes package projects are local development projects and are not available from NuGet.
+NemotronDiarizationSharp uses NeMo-Speech.cpp's native C API. The published managed SDK `0.1.0-preview.1` package contains no native runtime or GGUF model; applications must supply both separately. The CPU, CUDA, and AllRuntimes package projects are local development projects and are not available from NuGet.
 
 ## Default backend selection
 
@@ -26,7 +26,7 @@ using var stream = model.OpenStream();
 // Push float32 PCM samples, finish the stream, and read the result.
 ```
 
-For a first run, install the managed SDK prerelease after it is published, then supply a compatible native runtime and model independently. The local AllRuntimes project is not an installable package. CUDA requires a compatible NVIDIA GPU and driver; CPU requires a compatible Visual C++ x64 runtime including OpenMP. The SDK does not download native files or GGUF model weights.
+For a first run, install the published managed SDK prerelease, then supply a compatible native runtime and model independently. The local AllRuntimes project is not an installable package. CUDA requires a compatible NVIDIA GPU and driver; CPU requires a compatible Visual C++ x64 runtime including OpenMP. The SDK does not download native files or GGUF model weights.
 
 Use DiarizationBackend.Cpu or DiarizationBackend.Cuda in DiarizationModelOptions to require one backend. LoadForRecording loads the recording profile; call ProcessWaveFile to decode and process a WAV. LoadForStreaming loads the live profile; open a stream, supply PCM chunks, and call Finish. Both profiles use NVIDIA Reference segmentation by default; backend selection does not alter it.
 

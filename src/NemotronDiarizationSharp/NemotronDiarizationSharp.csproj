@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Version>0.1.0-preview.1</Version>
+    <Version>0.1.0-preview.2</Version>
     <AssemblyName>NemotronDiarizationSharp</AssemblyName>
     <RootNamespace>NemotronDiarizationSharp</RootNamespace>
     <Authors>Gargulz</Authors>
@@ -23,7 +23,7 @@
     <PackageReleaseNotes>Managed-only preview. MIT applies to original project-owned SDK source. Inference requires separately obtained compatible native components and a model, each subject to its own terms. Native runtime packages are not part of this release.</PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\docs\nuget\README.md" Pack="true" PackagePath="README.md" />
     <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\..\docs\distribution\DISTRIBUTION_STATUS.md" Pack="true" PackagePath="" />
   </ItemGroup>

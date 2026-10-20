@@ -10,9 +10,9 @@
 
 - .NET 10; локально проверены Windows x64 CPU и CUDA с runtime NeMo-Speech.cpp v0.2.0. Linux и Vulkan не проверены; широкая совместимость с GPU и драйверами не подтверждена.
 - Совместимые native runtime со всеми зависимостями и модель GGUF предоставляются отдельно. Managed SDK их не содержит и не скачивает. Для CPU нужен совместимый Visual C++ x64 runtime с OpenMP; CUDA также требует совместимые NVIDIA GPU и драйвер.
-- Кандидат `0.1.0-preview.1` — пакет только с managed SDK. Проекты пакетов native runtime не входят в этот выпуск и недоступны в NuGet. Проверка прав на распространение native runtime не завершена; MIT-лицензия SDK не предоставляет прав на сторонние бинарные файлы и веса модели.
+- Опубликованный пакет `0.1.0-preview.1` содержит только managed SDK. Проекты native runtime недоступны в NuGet. Проверка прав на распространение native runtime не завершена; MIT-лицензия SDK не предоставляет прав на сторонние бинарные файлы и веса модели.
 
-После публикации prerelease добавьте его в приложение .NET 10:
+Добавьте опубликованный prerelease в приложение .NET 10:
 
 ```powershell
 dotnet add package NemotronDiarizationSharp --version 0.1.0-preview.1

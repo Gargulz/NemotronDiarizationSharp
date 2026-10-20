@@ -10,9 +10,9 @@ An independent, unofficial .NET SDK for speaker diarization: identify who spoke 
 
 - .NET 10; locally validated on Windows x64 with CPU and CUDA runtimes pinned to NeMo-Speech.cpp v0.2.0. Linux and Vulkan are unverified; broad GPU/driver compatibility is unverified.
 - Supply a compatible native runtime directory with its dependencies and a GGUF model separately. Neither is downloaded or included in the managed SDK. CPU requires a compatible Visual C++ x64 runtime including OpenMP; CUDA also requires a compatible NVIDIA GPU and driver.
-- The `0.1.0-preview.1` candidate is a managed-only SDK package. The native runtime package projects are not part of this release and are not available from NuGet. Native runtime redistribution review remains incomplete; the SDK's MIT license does not grant rights to third-party binaries or model weights.
+- The published `0.1.0-preview.1` package contains only the managed SDK. Native runtime package projects are not available from NuGet. Native runtime redistribution review remains incomplete; the SDK's MIT license does not grant rights to third-party binaries or model weights.
 
-After the prerelease is published, add it to a .NET 10 application with:
+Add the published prerelease to a .NET 10 application with:
 
 ```powershell
 dotnet add package NemotronDiarizationSharp --version 0.1.0-preview.1

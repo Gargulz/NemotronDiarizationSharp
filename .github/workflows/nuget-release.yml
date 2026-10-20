@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_confirmation:
-        description: Type exactly "NemotronDiarizationSharp 0.1.0-preview.1" to publish.
+        description: Type exactly "NemotronDiarizationSharp 0.1.0-preview.2" to publish.
         required: false
         default: ''
         type: string
@@ -67,7 +67,7 @@ jobs:
   publish-managed-preview:
     name: Publish managed preview to NuGet.org
     needs: validate-managed-preview
-    if: ${{ github.ref == 'refs/heads/main' && inputs.release_confirmation == 'NemotronDiarizationSharp 0.1.0-preview.1' && needs.validate-managed-preview.result == 'success' }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.release_confirmation == 'NemotronDiarizationSharp 0.1.0-preview.2' && needs.validate-managed-preview.result == 'success' }}
     runs-on: windows-latest
     timeout-minutes: 20
     permissions:
@@ -128,7 +128,7 @@ jobs:
         env:
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
-          $package = Join-Path $env:RUNNER_TEMP 'nemotron-managed-preview/NemotronDiarizationSharp.0.1.0-preview.1.nupkg'
+          $package = Join-Path $env:RUNNER_TEMP 'nemotron-managed-preview/NemotronDiarizationSharp.0.1.0-preview.2.nupkg'
           dotnet nuget push $package `
             --api-key $env:NUGET_API_KEY `
             --source https://api.nuget.org/v3/index.json `

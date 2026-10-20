@@ -10,7 +10,7 @@ function Assert-Valid([bool] $condition, [string] $message) {
   if (-not $condition) { throw "Package validation failed: $message" }
 }
 
-$version = '0.1.0-preview.1'
+$version = '0.1.0-preview.2'
 $id = 'NemotronDiarizationSharp'
 $nupkg = Join-Path $PackageDirectory "$id.$version.nupkg"
 $snupkg = Join-Path $PackageDirectory "$id.$version.snupkg"
@@ -35,6 +35,8 @@ $expectedPackageEntries = @(
   'README.md',
   "lib/net10.0/$id.dll"
 )
+$readmeEntries = @($packageEntries | Where-Object { $_ -match '(?i)(^|/)README\.md$' })
+Assert-Valid (($readmeEntries.Count -eq 1) -and ($readmeEntries[0] -eq 'README.md')) 'The package must contain exactly one README.md at its root.'
 $unexpectedPackageEntries = @($packageEntries | Where-Object {
   ($_ -notin $expectedPackageEntries) -and ($_ -notmatch '^package/services/metadata/core-properties/[^/]+\.psmdcp$')
 })

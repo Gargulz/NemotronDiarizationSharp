@@ -1,6 +1,6 @@
 # Несколько native runtime
 
-NemotronDiarizationSharp использует native C API NeMo-Speech.cpp. Кандидат managed SDK `0.1.0-preview.1` не включает native runtime и модель GGUF: их нужно предоставить отдельно. Проекты пакетов CPU, CUDA и AllRuntimes являются локальными проектами разработки и недоступны в NuGet.
+NemotronDiarizationSharp использует native C API NeMo-Speech.cpp. Опубликованный пакет managed SDK `0.1.0-preview.1` не включает native runtime и модель GGUF: их нужно предоставить отдельно. Проекты пакетов CPU, CUDA и AllRuntimes являются локальными проектами разработки и недоступны в NuGet.
 
 ## Backend по умолчанию
 
