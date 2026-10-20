@@ -18,7 +18,7 @@ For runtime setup, see the [CPU runtime notes](https://github.com/Gargulz/Nemotr
 Requires .NET 10. This prerelease has been validated on Windows x64; Linux and other platforms are unverified.
 
 ```powershell
-dotnet add package NemotronDiarizationSharp --version 0.1.0-preview.1
+dotnet add package NemotronDiarizationSharp --version 0.1.0-preview.2
 $env:NEMOTONDIARIZATIONSHARP_NATIVE_DIR = '<absolute path to the CPU runtime directory>'
 ```
 
